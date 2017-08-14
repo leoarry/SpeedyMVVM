@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <MinimumVisualStudioVersion>10.0</MinimumVisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{FF135A87-16D8-4E3F-9BFD-B174888335F4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SpeedyMVVM</RootNamespace>
+    <AssemblyName>SpeedyMVVM</AssemblyName>
+    <DefaultLanguage>it-IT</DefaultLanguage>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkProfile>Profile111</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- A reference to the entire .NET Framework is automatically included -->
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DataAccess\EntityEditorViewModel.cs" />
+    <Compile Include="DataAccess\EntityPickerBoxViewModel.cs" />
+    <Compile Include="Expressions\Visitors\ParameterRebinder.cs" />
+    <Compile Include="Expressions\ExpressionExtensions.cs" />
+    <Compile Include="DataAccess\Interfaces\IEntityBase.cs" />
+    <Compile Include="Navigation\PageSettingModel.cs" />
+    <Compile Include="Navigation\Interfaces\INavigationService.cs" />
+    <Compile Include="Navigation\Interfaces\IPageViewModel.cs" />
+    <Compile Include="Models\ContextMenuItemModel.cs" />
+    <Compile Include="Navigation\PageManagerViewModel.cs" />
+    <Compile Include="Planning\IPlannable.cs" />
+    <Compile Include="Planning\PlannerLenghtEnum.cs" />
+    <Compile Include="Planning\SchedulerViewModel.cs" />
+    <Compile Include="SpeedyMVVMExtensions.cs" />
+    <Compile Include="Utilities\Interfaces\IAppRuntimeSettingsService.cs" />
+    <Compile Include="Utilities\Interfaces\IDialogBoxService.cs" />
+    <Compile Include="DataAccess\Interfaces\IEntitiesDialogBoxService.cs" />
+    <Compile Include="DataAccess\Interfaces\IRepositoryService.cs" />
+    <Compile Include="Utilities\Interfaces\IViewModelBase.cs" />
+    <Compile Include="Expressions\ExpressionModel.cs" />
+    <Compile Include="DataAccess\EntityBase.cs" />
+    <Compile Include="Utilities\ObservableObject.cs" />
+    <Compile Include="Utilities\ViewModelBase.cs" />
+    <Compile Include="Planning\PlannedDay.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Enumerators\DialogBoxEnum.cs" />
+    <Compile Include="Utilities\Enumerators\DialogBoxIconEnum.cs" />
+    <Compile Include="DataAccess\EntityStatusEnum.cs" />
+    <Compile Include="Expressions\ExpressionConcatEnum.cs" />
+    <Compile Include="Expressions\ExpressionOperatorEnum.cs" />
+    <Compile Include="Planning\MonthsOfTheYearEnum.cs" />
+    <Compile Include="Expressions\ExpressionBuilder.cs" />
+    <Compile Include="Expressions\Visitors\ParameterUpdateVisitor.cs" />
+    <Compile Include="Expressions\PredicateBuilder.cs" />
+    <Compile Include="Utilities\RelayCommand_T.cs" />
+    <Compile Include="Utilities\RelayCommand.cs" />
+    <Compile Include="Expressions\Visitors\ReplaceVisitor.cs" />
+    <Compile Include="Utilities\ServiceLocator.cs" />
+    <Compile Include="DataAccess\CRUDViewModel.cs" />
+    <Compile Include="DataAccess\EntityFilterViewModel.cs" />
+    <Compile Include="Planning\EntityPlannerViewModel.cs" />
+    <Compile Include="ViewModels\DialogBoxViewModel.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
