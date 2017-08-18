@@ -1,6 +1,6 @@
 ﻿using SpeedyMVVM.Utilities;
 
-namespace SpeedyMVVM.Models
+namespace SpeedyMVVM.Navigation.Models
 {
     /// <summary>
     /// Provide a Context Menu Item.

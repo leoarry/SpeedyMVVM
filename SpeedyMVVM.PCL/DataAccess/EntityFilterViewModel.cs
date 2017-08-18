@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -24,9 +25,12 @@ namespace SpeedyMVVM.DataAccess
         #endregion
 
         #region Property
+        /// <summary>
+        /// Collection of filters used to build the Expression.
+        /// </summary>
         public ObservableCollection<ExpressionModel> Filters
         {
-            get { return _Filters; }
+            get { return (_Filters == null) ? _Filters = new ObservableCollection<ExpressionModel>() : _Filters; }
             set
             {
                 if (_Filters != value)
@@ -36,9 +40,13 @@ namespace SpeedyMVVM.DataAccess
                 }
             }
         }
+
+        /// <summary>
+        /// Selected filter from the collection 'Filters'.
+        /// </summary>
         public ExpressionModel SelectedFilter
         {
-            get { return _SelectedFilter; }
+            get { return (_SelectedFilter == null) ? _SelectedFilter = new ExpressionModel() : _SelectedFilter; }
             set
             {
                 if (_SelectedFilter != value)
@@ -48,6 +56,10 @@ namespace SpeedyMVVM.DataAccess
                 }
             }
         }
+
+        /// <summary>
+        /// List of properties names for <typeparamref name="T"/>.
+        /// </summary>
         public ObservableCollection<string> PropertyList
         {
             get
@@ -60,9 +72,13 @@ namespace SpeedyMVVM.DataAccess
                 return new ObservableCollection<string>(myList);
             }
         }
+
+        /// <summary>
+        /// Filtered collection of <typeparamref name="T"/>.
+        /// </summary>
         public ObservableCollection<T> Items
         {
-            get { return _Items; }
+            get { return (_Items == null) ? _Items = new ObservableCollection<T>() : _Items; }
             set
             {
                 if (_Items != value)
@@ -72,70 +88,157 @@ namespace SpeedyMVVM.DataAccess
                 }
             }
         }
+
+        /// <summary>
+        /// Data service where retrieve datas.
+        /// </summary>
         public virtual IRepositoryService<T> DataService { get; set; }
+
+        /// <summary>
+        /// Hidden expression which will be added in AND logic to the 'Filters' generated expression.
+        /// </summary>
+        public Expression<Func<T, bool>> HiddenExpression { get; set; }
         #endregion
 
         #region Commands
+        /// <summary>
+        /// Add a new filter to the collection 'Filters'.
+        /// </summary>
         public RelayCommand AddFilterCommand
         {
             get { return new RelayCommand(() => Filters.Add(new ExpressionModel())); }
         }
+
+        /// <summary>
+        /// Remove the 'SelectedFilter' from the 'Filters' collection.
+        /// </summary>
         public RelayCommand RemoveFilterCommand
         {
             get { return new RelayCommand(() => Filters.Remove(SelectedFilter)); }
         }
+
+        /// <summary>
+        /// Command to execute the query using 'DataService' to retrieve the collection 'Items'.
+        /// </summary>
         public RelayCommand SearchCommand
         {
             get
             {
-                return (_SearchCommand == null)? _SearchCommand = new RelayCommand(Search, true) : _SearchCommand;
+                return (_SearchCommand == null) ? _SearchCommand = new RelayCommand(async()=> await Search(), true) : _SearchCommand;
             }
         }
         #endregion
 
         #region Methods
-        public async void Search()
+        /// <summary>
+        /// Execute the query using 'DataService' to retrieve the collection 'Items'.
+        /// </summary>
+        public virtual async Task<bool> Search()
         {
-            Items = await GetResult();
+            if (DataService != null)
+                Items = await GetCollectionFromDataService();
+            else
+                Items = await FilterCollection(Items);
+            return true;
         }
-        public async Task<ObservableCollection<T>> GetResult()
+
+        /// <summary>
+        /// Execute the query using 'DataService' to return a collection.
+        /// </summary>
+        /// <returns>Result of the query.</returns>
+        public async Task<ObservableCollection<T>> GetCollectionFromDataService()
         {
-            var myExp = ExpressionBuilder.GetExpression<T>(Filters);
+            if (DataService == null)
+                return null;
+            var myExp = GetExpression();
             var myList = await DataService.RetrieveCollectionAsync(myExp);
             return (myList != null) ? myList : new ObservableCollection<T>();
         }
+
+        /// <summary>
+        /// Filter the collection passed as parameter.
+        /// </summary>
+        /// <param name="collection">Collection to filter.</param>
+        /// <returns>Filtered collection.</returns>
+        public async Task<ObservableCollection<T>> FilterCollection(ObservableCollection<T> collection)
+        {
+            return await Task.Factory.StartNew(() =>
+            {
+                var myExp = GetExpression();
+                return (collection != null) ? collection.AsQueryable().Where(myExp).AsObservableCollection() : new ObservableCollection<T>();
+            });
+        }
+
+        /// <summary>
+        /// Initialize EntityFilter using the locator parameter.
+        /// </summary>
+        /// <param name="locator">ServiceLocator containing the services.</param>
         public override void Initialize(ServiceLocator locator)
         {
+            ServiceContainer = locator;
             DataService = locator.GetService<IRepositoryService<T>>();
-            _Filters = new ObservableCollection<ExpressionModel>();
-            _Filters.Add(new ExpressionModel());
-            _Items = new ObservableCollection<T>();
+            IsInitialized = true;
+        }
+
+        /// <summary>
+        /// Private method to compute the expression.
+        /// </summary>
+        /// <returns></returns>
+        private Expression<Func<T,bool>> GetExpression()
+        {
+            Expression<Func<T, bool>> myExp = null;
+            if (_Filters != null && _Filters.Count > 0)
+            {
+                myExp = ExpressionBuilder.GetExpression<T>(_Filters);
+                if (HiddenExpression != null)
+                    myExp = myExp.And(HiddenExpression);
+            }
+            else if (HiddenExpression != null)
+            {
+                myExp = HiddenExpression;
+            }
+            return myExp;
         }
         #endregion
 
         #region Costructors
+        /// <summary>
+        /// Initalize a new instance of EntityFilterViewModel
+        /// </summary>
         public EntityFilterViewModel()
         {
-            _Filters = new ObservableCollection<ExpressionModel>();
-            _Filters.Add(new ExpressionModel());
-            _Items = new ObservableCollection<T>();
         }
+
+        /// <summary>
+        /// Initialize a new instance of EntityFilter using the locator parameter.
+        /// </summary>
+        /// <param name="locator">ServiceLocator containing the services.</param>
         public EntityFilterViewModel(ServiceLocator locator)
         {
             Initialize(locator);
         }
+
+        /// <summary>
+        /// Initialize a new instance of EntityFilter using the locator parameter.
+        /// </summary>
+        /// <param name="locator">ServiceLocator containing the services.</param>
+        /// <param name="expressionModel">ExpressionModel to add to the 'Filters' collection.</param>
         public EntityFilterViewModel(ServiceLocator locator, ExpressionModel expressionModel)
         {
-            DataService = locator.GetService<IRepositoryService<T>>();
+            Initialize(locator);
             _Filters = new ObservableCollection<ExpressionModel>();
             _Filters.Add(expressionModel);
-            _Items = new ObservableCollection<T>();
         }
+
+        /// <summary>
+        /// Initialize a new instance of EntityFilter using the locator parameter.
+        /// </summary>
+        /// <param name="locator">ServiceLocator containing the services</param>
+        /// <param name="expressionModels">ExpressionModels to add to the 'Filters' collection</param>
         public EntityFilterViewModel(ServiceLocator locator, ObservableCollection<ExpressionModel> expressionModels)
         {
-            DataService = locator.GetService<IRepositoryService<T>>();
+            Initialize(locator);
             _Filters = expressionModels;
-            _Items = new ObservableCollection<T>();
         }
         #endregion
     }

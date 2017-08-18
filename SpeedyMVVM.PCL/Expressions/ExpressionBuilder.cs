@@ -37,10 +37,10 @@ namespace SpeedyMVVM.Expressions
             foreach(var f in filters)
             {
                 if (exp == null)
-                    exp = Expression.Lambda<Func<T, bool>>(MakePredicate<T>(item, f));
+                    exp = Expression.Lambda<Func<T, bool>>(MakePredicate<T>(item, f),item);
                 else
                 {
-                    newExp = Expression.Lambda<Func<T, bool>>(MakePredicate<T>(item, f));
+                    newExp = Expression.Lambda<Func<T, bool>>(MakePredicate<T>(item, f),item);
                     exp = exp.Concat(newExp, f.ConcatOperator);
                 }
             }

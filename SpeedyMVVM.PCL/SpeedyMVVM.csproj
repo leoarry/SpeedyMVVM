@@ -37,28 +37,31 @@
     <!-- A reference to the entire .NET Framework is automatically included -->
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataAccess\EntityEditorViewModel.cs" />
+    <Compile Include="DataAccess\EntityEditorBoxViewModel.cs" />
     <Compile Include="DataAccess\EntityPickerBoxViewModel.cs" />
     <Compile Include="Expressions\Visitors\ParameterRebinder.cs" />
     <Compile Include="Expressions\ExpressionExtensions.cs" />
     <Compile Include="DataAccess\Interfaces\IEntityBase.cs" />
-    <Compile Include="Navigation\PageSettingModel.cs" />
+    <Compile Include="Navigation\Models\PageSettingModel.cs" />
     <Compile Include="Navigation\Interfaces\INavigationService.cs" />
     <Compile Include="Navigation\Interfaces\IPageViewModel.cs" />
-    <Compile Include="Models\ContextMenuItemModel.cs" />
+    <Compile Include="Navigation\Models\ContextMenuItemModel.cs" />
     <Compile Include="Navigation\PageManagerViewModel.cs" />
     <Compile Include="Planning\IPlannable.cs" />
     <Compile Include="Planning\PlannerLenghtEnum.cs" />
     <Compile Include="Planning\SchedulerViewModel.cs" />
     <Compile Include="SpeedyMVVMExtensions.cs" />
     <Compile Include="Utilities\Interfaces\IAppRuntimeSettingsService.cs" />
+    <Compile Include="Navigation\Interfaces\IDialogBox.cs" />
     <Compile Include="Utilities\Interfaces\IDialogBoxService.cs" />
     <Compile Include="DataAccess\Interfaces\IEntitiesDialogBoxService.cs" />
     <Compile Include="DataAccess\Interfaces\IRepositoryService.cs" />
     <Compile Include="Utilities\Interfaces\IViewModelBase.cs" />
     <Compile Include="Expressions\ExpressionModel.cs" />
     <Compile Include="DataAccess\EntityBase.cs" />
+    <Compile Include="Utilities\MultiLanguages.cs" />
     <Compile Include="Utilities\ObservableObject.cs" />
+    <Compile Include="Utilities\OcPropertyChangedListener.cs" />
     <Compile Include="Utilities\ViewModelBase.cs" />
     <Compile Include="Planning\PlannedDay.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -10,7 +10,7 @@ namespace SpeedyMVVM.DataAccess.Interfaces
     public interface IEntitiesDialogBoxService:IDialogBoxService
     {
         bool? ShowEntityPickerBox<T>(EntityPickerBoxViewModel<T> myViewModel) where T : IEntityBase;
-        bool? ShowEntityEditorBox(IPageViewModel myViewModel);
+        bool? ShowEntityEditorBox<T>(EntityEditorBoxViewModel<T> myViewModel) where T : IEntityBase;
         bool? ShowPrintEntitiesDialog<T>(ObservableCollection<T> myCollection) where T : IEntityBase;
     }
 }

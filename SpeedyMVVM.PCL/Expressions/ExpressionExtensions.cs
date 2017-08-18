@@ -1,12 +1,7 @@
 ﻿using SpeedyMVVM.Expressions.Visitors;
-using SpeedyMVVM.Utilities;
-using SpeedyMVVM.Utilities.Enumerators;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SpeedyMVVM.Expressions
 {
@@ -35,10 +30,10 @@ namespace SpeedyMVVM.Expressions
                     binExp = Expression.And(exp.Body, Expression.Not(newExp.Body));
                     break;
                 case ExpressionConcatEnum.Or:
-                    binExp = Expression.Or(exp.Body, newExp.Body);
+                    binExp = Expression.OrElse(exp.Body, newExp.Body);
                     break;
                 case ExpressionConcatEnum.OrNot:
-                    binExp = Expression.Or(exp.Body, Expression.Not(newExp.Body));
+                    binExp = Expression.OrElse(exp.Body, Expression.Not(newExp.Body));
                     break;
             }
             return Expression.Lambda<Func<T, bool>>(binExp, newExp.Parameters);

@@ -101,14 +101,14 @@ namespace SpeedyMVVM.Navigation
             var pageDataService = ServiceContainer.GetService<IRepositoryService<PageSettingModel>>();
             foreach (var p in PageViewModels)
             {
-                if (!ser.PageSettings.Any(ps => ps.PageName == p.Name))
+                if (!ser.PageSettings.Any(ps => ps.PageName == p.Title))
                 {
-                    var page = new PageSettingModel { PageName = p.Name, AccessLevel = 0 };
+                    var page = new PageSettingModel { PageName = p.Title, AccessLevel = 0 };
                     pageDataService.AddEntityAsync(page);
                     ser.PageSettings.Add(page);
                     pageDataService.SaveChangesAsync();
                 }
-                var pLevel = ser.PageSettings.Where(ps => ps.PageName == p.Name).FirstOrDefault();
+                var pLevel = ser.PageSettings.Where(ps => ps.PageName == p.Title).FirstOrDefault();
                 if (ser.CurrentUserLevel > pLevel.AccessLevel) { p.IsVisible = false; }
                 else { p.IsVisible = true; }
             }

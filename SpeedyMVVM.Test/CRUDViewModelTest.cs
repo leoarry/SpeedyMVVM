@@ -8,6 +8,7 @@ using SpeedyMVVM.TestModel;
 using SpeedyMVVM.DataAccess.Interfaces;
 using SpeedyMVVM.Utilities;
 using SpeedyMVVM.TestModel.Services;
+using System.Threading.Tasks;
 
 namespace SpeedyMVVM.Test
 {
@@ -22,9 +23,9 @@ namespace SpeedyMVVM.Test
             var userToAdd = new UserModel { Name = "Donald", Surname = "Duck", AccessLevel = 0 };
             var viewModel = new CRUDViewModel<UserModel>();
 
-            viewModel.AddCommandExecute(userToAdd);
+            viewModel.AddCommandExecute(userToAdd).Wait();
 
-            var retrievedUser = viewModel.Filter.Items.Where(u => u.Name == userToAdd.Name).FirstOrDefault();
+            var retrievedUser = viewModel.Items.Where(u => u.Name == userToAdd.Name).FirstOrDefault();
 
             Assert.AreEqual(userToAdd, retrievedUser);
         }
@@ -34,20 +35,30 @@ namespace SpeedyMVVM.Test
         {
             var userToRemove = new UserModel { Name = "Donald", Surname = "Duck", AccessLevel = 0 };
             var viewModel = new CRUDViewModel<UserModel>();
-
-            viewModel.Filter.Items.Add(userToRemove);
-
-            viewModel.RemoveCommandExecute();
-
-            var retrievedUser = viewModel.Filter.Items.Where(u => u.Name == userToRemove.Name).First();
             
-            Assert.IsNull(retrievedUser);
+            viewModel.SelectedItem = userToRemove;
+            viewModel.Items.Add(viewModel.SelectedItem);
+            viewModel.RemoveCommandExecute().Wait();
+            
+            Assert.IsTrue(viewModel.Items.Where(u => u.Name == "Donald").Count()==0);
         }
 
         [TestMethod]
-        public void Initialize_Test()
+        public void Search_Test()
         {
+            var viewModel = new CRUDViewModel<UserModel>();
+            var listOfUsers = new List<UserModel>
+            {
+                new UserModel {Name="Donald", Surname="Duck" },
+                new UserModel {Name="Foxy", Surname="Lady" },
+                new UserModel {Name="Peter", Surname="Griffin" },
+                new UserModel {Name="Fernanda", Surname="Lopez" }
+            };
 
-        }
+            viewModel.Items = listOfUsers.AsObservableCollection();
+            viewModel.Filter.HiddenExpression = u => u.Name.StartsWith("F");
+            
+            viewModel.SearchCommandExecute().Wait();
+            Assert.IsTrue(viewModel.Items.Where(u => u.Name.StartsWith("F")).Count() == 2);        }
     }
 }

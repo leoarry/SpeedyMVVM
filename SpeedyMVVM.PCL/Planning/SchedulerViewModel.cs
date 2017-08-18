@@ -38,7 +38,7 @@ namespace SpeedyMVVM.Planning
 
         #region IPageViewModel Implementation
         public string IconPath { get; set; }
-        public string Name { get; set; }
+        public string Title { get; set; }
         public bool IsVisible { get; set; }
         #endregion
 

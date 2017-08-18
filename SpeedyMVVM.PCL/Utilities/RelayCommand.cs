@@ -74,7 +74,6 @@ namespace SpeedyMVVM.Utilities
         /// <summary>
         /// Execute the stored action.
         /// </summary>
-        /// <param name="parameter">Object to pass to the delegate.</param>
         public void Execute(object parameter)
         {
             _handler();

@@ -9,9 +9,9 @@ namespace SpeedyMVVM.Navigation.Interfaces
     {
         #region Properties
         /// <summary>
-        /// Name of the page.
+        /// Title of the page.
         /// </summary>
-        string Name { get; set; }
+        string Title { get; set; }
         /// <summary>
         /// Path of the page image.
         /// </summary>
