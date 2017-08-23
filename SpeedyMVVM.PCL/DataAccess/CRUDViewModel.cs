@@ -10,7 +10,7 @@ namespace SpeedyMVVM.DataAccess
     /// Class which implement a basic CRUD operation with an EntityBase.
     /// </summary>
     /// <typeparam name="T">Type of Entity.</typeparam>
-    public class CRUDViewModel<T> : ViewModelBase where T : IEntityBase
+    public class CRUDViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Fields
         private bool _CanSearch;

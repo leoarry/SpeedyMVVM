@@ -1,14 +1,16 @@
 ﻿using SpeedyMVVM.DataAccess;
+using SpeedyMVVM.DataAccess.Interfaces;
 using SpeedyMVVM.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel;
 
 namespace SpeedyMVVM.TestModel.Models
 {
-    public class UserModel:EntityBase
+    public class UserModel: EntityBase
     {
         #region Fields
         private string _Name;
@@ -92,6 +94,7 @@ namespace SpeedyMVVM.TestModel.Models
                 }
             }
         }
+        
         #endregion
     }
 }

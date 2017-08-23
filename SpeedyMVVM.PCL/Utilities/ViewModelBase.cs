@@ -1,6 +1,4 @@
-﻿using System;
-using SpeedyMVVM.Utilities;
-using SpeedyMVVM.Utilities.Interfaces;
+﻿using SpeedyMVVM.Utilities.Interfaces;
 
 namespace SpeedyMVVM.Utilities
 {

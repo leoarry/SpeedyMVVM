@@ -41,19 +41,18 @@
     <Compile Include="DataAccess\EntityPickerBoxViewModel.cs" />
     <Compile Include="Expressions\Visitors\ParameterRebinder.cs" />
     <Compile Include="Expressions\ExpressionExtensions.cs" />
-    <Compile Include="DataAccess\Interfaces\IEntityBase.cs" />
     <Compile Include="Navigation\Models\PageSettingModel.cs" />
     <Compile Include="Navigation\Interfaces\INavigationService.cs" />
     <Compile Include="Navigation\Interfaces\IPageViewModel.cs" />
     <Compile Include="Navigation\Models\ContextMenuItemModel.cs" />
     <Compile Include="Navigation\PageManagerViewModel.cs" />
+    <Compile Include="Planning\EntitySchedulerViewModel.cs" />
     <Compile Include="Planning\IPlannable.cs" />
-    <Compile Include="Planning\PlannerLenghtEnum.cs" />
     <Compile Include="Planning\SchedulerViewModel.cs" />
     <Compile Include="SpeedyMVVMExtensions.cs" />
     <Compile Include="Utilities\Interfaces\IAppRuntimeSettingsService.cs" />
     <Compile Include="Navigation\Interfaces\IDialogBox.cs" />
-    <Compile Include="Utilities\Interfaces\IDialogBoxService.cs" />
+    <Compile Include="Navigation\Interfaces\IDialogBoxService.cs" />
     <Compile Include="DataAccess\Interfaces\IEntitiesDialogBoxService.cs" />
     <Compile Include="DataAccess\Interfaces\IRepositoryService.cs" />
     <Compile Include="Utilities\Interfaces\IViewModelBase.cs" />
@@ -65,8 +64,8 @@
     <Compile Include="Utilities\ViewModelBase.cs" />
     <Compile Include="Planning\PlannedDay.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utilities\Enumerators\DialogBoxEnum.cs" />
-    <Compile Include="Utilities\Enumerators\DialogBoxIconEnum.cs" />
+    <Compile Include="Navigation\Enumerators\DialogBoxEnum.cs" />
+    <Compile Include="Navigation\Enumerators\DialogBoxIconEnum.cs" />
     <Compile Include="DataAccess\EntityStatusEnum.cs" />
     <Compile Include="Expressions\ExpressionConcatEnum.cs" />
     <Compile Include="Expressions\ExpressionOperatorEnum.cs" />
@@ -80,8 +79,7 @@
     <Compile Include="Utilities\ServiceLocator.cs" />
     <Compile Include="DataAccess\CRUDViewModel.cs" />
     <Compile Include="DataAccess\EntityFilterViewModel.cs" />
-    <Compile Include="Planning\EntityPlannerViewModel.cs" />
-    <Compile Include="ViewModels\DialogBoxViewModel.cs" />
+    <Compile Include="Navigation\DialogBoxViewModel.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

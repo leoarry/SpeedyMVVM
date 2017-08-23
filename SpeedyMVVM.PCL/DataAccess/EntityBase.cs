@@ -1,35 +1,21 @@
 ﻿using SpeedyMVVM.DataAccess.Interfaces;
 using SpeedyMVVM.Utilities;
+using System;
+using System.ComponentModel;
 
 namespace SpeedyMVVM.DataAccess
 {
     /// <summary>
     /// Basic class to build an Entity for data-access purpose.
     /// </summary>
-    public abstract class EntityBase : ObservableObject, IEntityBase
+    public abstract class EntityBase : ObservableObject
     {
         #region Fields
         private EntityStatusEnum _EntityStatus;
         private int _ID;
         #endregion
-
+        
         #region Properties
-        /// <summary>
-        /// ID of the Entity
-        /// </summary>
-        public int ID
-        {
-            get { return _ID; }
-            set
-            {
-                if (value != _ID)
-                {
-                    _ID = value;
-                    OnPropertyChanged(nameof(ID));
-                }
-            }
-        }
-
         /// <summary>
         /// Actual Status of the Entity.
         /// </summary>
@@ -57,9 +43,9 @@ namespace SpeedyMVVM.DataAccess
         {
             return (T)this.MemberwiseClone();
         }
-
+        
         /// <summary>
-        /// Raises this object's PropertyChanged event and set the EntityStatus as Modified.
+        /// Raises this object's PropertyChanged event.
         /// </summary>
         /// <param name="propertyName">The property that has a new value.</param>
         protected override void OnPropertyChanged(string propertyName)

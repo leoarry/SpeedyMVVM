@@ -6,19 +6,19 @@ using System.Text;
 using System.Threading.Tasks;
 using SpeedyMVVM.DataAccess;
 using SpeedyMVVM.Navigation.Interfaces;
-using SpeedyMVVM.Utilities.Enumerators;
 using System.Collections.ObjectModel;
+using SpeedyMVVM.Navigation.Enumerators;
 
 namespace SpeedyMVVM.TestModel.Services
 {
     public class EntitiesDialogBoxService : IEntitiesDialogBoxService
     {
-        public bool? ShowEntityEditorBox(IPageViewModel myViewModel)
+        public bool? ShowEntityEditorBox<T>(EntityEditorBoxViewModel<T> myViewModel) where T : EntityBase
         {
             return true;
         }
 
-        public bool? ShowEntityPickerBox<T>(EntityPickerBoxViewModel<T> myViewModel) where T : IEntityBase
+        public bool? ShowEntityPickerBox<T>(EntityPickerBoxViewModel<T> myViewModel) where T : EntityBase
         {
             return true;
         }
@@ -33,7 +33,7 @@ namespace SpeedyMVVM.TestModel.Services
             return true;
         }
         
-        public bool? ShowPrintEntitiesDialog<T>(ObservableCollection<T> myCollection) where T : IEntityBase
+        public bool? ShowPrintEntitiesDialog<T>(ObservableCollection<T> myCollection) where T : EntityBase
         {
             return true;
         }

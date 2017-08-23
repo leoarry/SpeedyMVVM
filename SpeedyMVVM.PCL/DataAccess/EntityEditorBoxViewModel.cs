@@ -10,7 +10,7 @@ namespace SpeedyMVVM.DataAccess
     /// View model to edit an entity and persist the datas using services.
     /// </summary>
     /// <typeparam name="T">Type of entity.</typeparam>
-    public class EntityEditorBoxViewModel<T> : ViewModelBase, IDialogBox where T : IEntityBase
+    public class EntityEditorBoxViewModel<T> : ViewModelBase, IDialogBox where T : EntityBase
     {
 
         #region Fields
@@ -130,6 +130,10 @@ namespace SpeedyMVVM.DataAccess
             }
             set { _SaveCommand = value; }
         }
+        /// <summary>
+        /// Set DialogResult = false.
+        /// </summary>
+        public RelayCommand ExitCommand { get { return new RelayCommand(() => DialogResult = false, true); } }
         #endregion
 
         #region Commands Execution
@@ -137,12 +141,17 @@ namespace SpeedyMVVM.DataAccess
         /// Persist changes using 'DataService'.
         /// </summary>
         /// <returns>0 if successfully.</returns>
-        public async Task<int> SaveCommandExecution()
+        public async Task<bool?> SaveCommandExecution()
         {
             if (DataService != null)
-                return await DataService.SaveChangesAsync();
+            {
+                if (await DataService.SaveChangesAsync() == 0)
+                    return DialogResult = true;
+                else
+                    return DialogResult = false; 
+            }
             else
-                return int.MaxValue;
+                return DialogResult = false;
         }
         #endregion
 
@@ -155,6 +164,7 @@ namespace SpeedyMVVM.DataAccess
         {
             this.ServiceContainer = locator;
             DataService = locator.GetService<IRepositoryService<T>>();
+            IsInitialized = true;
         }
         #endregion
 

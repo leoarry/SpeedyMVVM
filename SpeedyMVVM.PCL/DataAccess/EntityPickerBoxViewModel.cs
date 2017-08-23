@@ -12,7 +12,7 @@ namespace SpeedyMVVM.DataAccess
     /// View model to select entities from a list filtered using repository services.
     /// </summary>
     /// <typeparam name="T">Type of entity</typeparam>
-    public class EntityPickerBoxViewModel<T> : ViewModelBase, IDialogBox where T : IEntityBase
+    public class EntityPickerBoxViewModel<T> : ViewModelBase, IDialogBox where T : EntityBase
     {
 
         #region IDialogBox Implementation

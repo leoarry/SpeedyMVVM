@@ -6,12 +6,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
+using SpeedyMVVM.DataAccess;
 
 namespace SpeedyMVVM.TestModel.Services
 {
-    public class RepositoryService<T> : IRepositoryService<T> where T : IEntityBase
+    public class RepositoryService<T> : IRepositoryService<T> where T : EntityBase
     {
         public List<T> List { get; set; }
+
+        public IQueryable<T> DataSet
+        {
+            get
+            {
+                return List.AsQueryable();
+            }
+
+            set
+            {
+                List=value.ToList();
+            }
+        }
 
         public RepositoryService()
         {
@@ -20,7 +34,6 @@ namespace SpeedyMVVM.TestModel.Services
 
         public T AddEntity(T entity)
         {
-            entity.ID = List.Max(u => u.ID);
             List.Add(entity);
             return entity;
         }
@@ -47,7 +60,7 @@ namespace SpeedyMVVM.TestModel.Services
             return (result != null) ? new ObservableCollection<T>(result) : new ObservableCollection<T>();
         }
 
-        public ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : IEntityBase
+        public ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase
         {
             throw new NotImplementedException();
         }
@@ -57,7 +70,7 @@ namespace SpeedyMVVM.TestModel.Services
             return Task.Factory.StartNew(() => RetrieveCollection(predicate));
         }
 
-        public Task<ObservableCollection<TEntity>> RetrieveCollectionAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : IEntityBase
+        public Task<ObservableCollection<TEntity>> RetrieveCollectionAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase
         {
             return Task.Factory.StartNew(() => RetrieveCollection<TEntity>(predicate));
         }
@@ -74,7 +87,7 @@ namespace SpeedyMVVM.TestModel.Services
 
         public T UpdateEntity(T entity)
         {
-            var entityToUpdate = List.Find(e=> e.ID==entity.ID);
+            var entityToUpdate = List.Find(e=> e==entity);
             entityToUpdate = entity;
             return entityToUpdate;
         }

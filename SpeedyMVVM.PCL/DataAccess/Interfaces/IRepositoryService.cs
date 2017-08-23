@@ -1,12 +1,18 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace SpeedyMVVM.DataAccess.Interfaces
 {
-    public interface IRepositoryService<T> where T : IEntityBase
+    public interface IRepositoryService<T> where T : EntityBase
     {
+
+        #region Properties
+        IQueryable<T> DataSet { get; set; }
+        #endregion
+
         #region Create Methods
         /// <summary>
         /// Add a new entity to the datacenter.
@@ -43,14 +49,14 @@ namespace SpeedyMVVM.DataAccess.Interfaces
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
-        ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : IEntityBase;
+        ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase;
 
         /// <summary>
         /// ASYNC - Retrive a collection from the datacenter of specified type 'TEntity' based on the 'Expression' parameter.
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
-        Task<ObservableCollection<TEntity>> RetrieveCollectionAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : IEntityBase;
+        Task<ObservableCollection<TEntity>> RetrieveCollectionAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase;
         #endregion
 
         #region Update Methods

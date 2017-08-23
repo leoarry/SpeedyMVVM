@@ -15,11 +15,11 @@ namespace SpeedyMVVM.TestModel
         {
             var list = new List<UserModel>();
             list.Add(new UserModel
-            { ID = 1, Name = "Patrick", Surname = "Jefferson", AccessLevel = 1000, NickName = "Gentleman" });
+            { Name = "Patrick", Surname = "Jefferson", AccessLevel = 1000, NickName = "Gentleman" });
             list.Add(new UserModel
-            { ID = 2, Name = "Arnold", Surname = "Jhonson", AccessLevel = 0, NickName = "Rock" });
+            { Name = "Arnold", Surname = "Jhonson", AccessLevel = 0, NickName = "Rock" });
             list.Add(new UserModel
-            { ID = 3, Name = "Paul", Surname = "Gibson", AccessLevel = 100, NickName = "GuitarMan" });
+            { Name = "Paul", Surname = "Gibson", AccessLevel = 100, NickName = "GuitarMan" });
             return list;
         }
 

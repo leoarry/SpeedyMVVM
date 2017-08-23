@@ -15,7 +15,7 @@ namespace SpeedyMVVM.DataAccess
     /// Class to filter a collection of <typeparamref name="T"/> using DataService while available.
     /// </summary>
     /// <typeparam name="T">Entity type.</typeparam>
-    public class EntityFilterViewModel<T> : ViewModelBase where T : IEntityBase
+    public class EntityFilterViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Field
         private RelayCommand _SearchCommand;

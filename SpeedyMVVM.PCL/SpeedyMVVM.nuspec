@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>SpeedyMVVM.PCL</id>
+    <version>$version$</version>
+    <title>SpeedyMVVM.PCL</title>
+    <authors>larri</authors>
+    <owners>larri</owners>
+    <licenseUrl>https://github.com/leoarry/SpeedyMVVM/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/leoarry/SpeedyMVVM</projectUrl>
+    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A Cross-Platform solution of MVVM Implementing classes.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>MVVM CrossPlatorm</tags>
+  </metadata>
+</package>
