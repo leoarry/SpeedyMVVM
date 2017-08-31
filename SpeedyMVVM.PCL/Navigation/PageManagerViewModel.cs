@@ -135,6 +135,8 @@ namespace SpeedyMVVM.Navigation
         public virtual void SetPagesVisibility()
         {
             var ser = ServiceContainer.GetService<IAppRuntimeSettingsService>();
+            if (ser == null)
+                return;
             var pageDataService = ServiceContainer.GetService<IRepositoryService<PageSettingModel>>();
             foreach (var p in Pages)
             {
@@ -167,7 +169,7 @@ namespace SpeedyMVVM.Navigation
         }
         #endregion
 
-        #region Costructors
+        #region Constructors
         /// <summary>
         /// Create a new instance of PageManagerViewModel.
         /// </summary>

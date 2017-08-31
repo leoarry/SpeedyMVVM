@@ -37,8 +37,7 @@
     <!-- A reference to the entire .NET Framework is automatically included -->
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataAccess\EntityEditorBoxViewModel.cs" />
-    <Compile Include="DataAccess\EntityPickerBoxViewModel.cs" />
+    <Compile Include="DataAccess\CrudDialogViewModel.cs" />
     <Compile Include="Expressions\Visitors\ParameterRebinder.cs" />
     <Compile Include="Expressions\ExpressionExtensions.cs" />
     <Compile Include="Navigation\Models\PageSettingModel.cs" />
@@ -53,7 +52,7 @@
     <Compile Include="Utilities\Interfaces\IAppRuntimeSettingsService.cs" />
     <Compile Include="Navigation\Interfaces\IDialogBox.cs" />
     <Compile Include="Navigation\Interfaces\IDialogBoxService.cs" />
-    <Compile Include="DataAccess\Interfaces\IEntitiesDialogBoxService.cs" />
+    <Compile Include="DataAccess\Interfaces\IEntityDialogBoxService.cs" />
     <Compile Include="DataAccess\Interfaces\IRepositoryService.cs" />
     <Compile Include="Utilities\Interfaces\IViewModelBase.cs" />
     <Compile Include="Expressions\ExpressionModel.cs" />
@@ -77,7 +76,7 @@
     <Compile Include="Utilities\RelayCommand.cs" />
     <Compile Include="Expressions\Visitors\ReplaceVisitor.cs" />
     <Compile Include="Utilities\ServiceLocator.cs" />
-    <Compile Include="DataAccess\CRUDViewModel.cs" />
+    <Compile Include="DataAccess\CrudViewModel.cs" />
     <Compile Include="DataAccess\EntityFilterViewModel.cs" />
     <Compile Include="Navigation\DialogBoxViewModel.cs" />
   </ItemGroup>

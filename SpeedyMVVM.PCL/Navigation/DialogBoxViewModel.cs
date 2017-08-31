@@ -308,7 +308,7 @@ namespace SpeedyMVVM.Navigation
         }
         #endregion
 
-        #region Costructors
+        #region Constructors
         /// <summary>
         /// Create a new instance of DialogBoxViewModel.
         /// </summary>
@@ -334,7 +334,7 @@ namespace SpeedyMVVM.Navigation
         /// </summary>
         /// <param name="dialogBoxType">Type of dialog box.</param>
         /// <param name="message">Message to show on the dialog box.</param>
-        /// <param name="title">Title of the popup window.</param>
+        /// <param name="title">Title of the pop-up window.</param>
         public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message, string title)
         {
             _DialogBoxType = dialogBoxType;
@@ -347,8 +347,8 @@ namespace SpeedyMVVM.Navigation
         /// </summary>
         /// <param name="dialogBoxType">Type of dialog box.</param>
         /// <param name="message">Message to show on the dialog box.</param>
-        /// <param name="title">Title of the popup window.</param>
-        /// <param name="iconPath">Icon path for the popup window.</param>
+        /// <param name="title">Title of the pop-up window.</param>
+        /// <param name="iconPath">Icon path for the pop-up window.</param>
         public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message, string title, string iconPath)
         {
             _DialogBoxType = dialogBoxType;

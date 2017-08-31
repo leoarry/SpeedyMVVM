@@ -18,7 +18,7 @@ namespace SpeedyMVVM.DataAccess
     public class EntityFilterViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Field
-        private RelayCommand _SearchCommand;
+        private RelayCommand _FilterCommand;
         private ObservableCollection<ExpressionModel> _Filters;
         private ExpressionModel _SelectedFilter;
         private ObservableCollection<T> _Items;
@@ -90,7 +90,7 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Data service where retrieve datas.
+        /// Data service where retrieve data.
         /// </summary>
         public virtual IRepositoryService<T> DataService { get; set; }
 
@@ -120,11 +120,11 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Command to execute the query using 'DataService' to retrieve the collection 'Items'.
         /// </summary>
-        public RelayCommand SearchCommand
+        public RelayCommand FilterCommand
         {
             get
             {
-                return (_SearchCommand == null) ? _SearchCommand = new RelayCommand(async()=> await Search(), true) : _SearchCommand;
+                return (_FilterCommand == null) ? _FilterCommand = new RelayCommand(async()=> await FilterCommandExecute(), true) : _FilterCommand;
             }
         }
         #endregion
@@ -133,7 +133,7 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Execute the query using 'DataService' to retrieve the collection 'Items'.
         /// </summary>
-        public virtual async Task<bool> Search()
+        public virtual async Task<bool> FilterCommandExecute()
         {
             if (DataService != null)
                 Items = await GetCollectionFromDataService();
@@ -201,9 +201,9 @@ namespace SpeedyMVVM.DataAccess
         }
         #endregion
 
-        #region Costructors
+        #region Constructors
         /// <summary>
-        /// Initalize a new instance of EntityFilterViewModel
+        /// Initialize a new instance of EntityFilterViewModel
         /// </summary>
         public EntityFilterViewModel()
         {
@@ -226,8 +226,9 @@ namespace SpeedyMVVM.DataAccess
         public EntityFilterViewModel(ServiceLocator locator, ExpressionModel expressionModel)
         {
             Initialize(locator);
+            _SelectedFilter = expressionModel;
             _Filters = new ObservableCollection<ExpressionModel>();
-            _Filters.Add(expressionModel);
+            _Filters.Add(_SelectedFilter);
         }
 
         /// <summary>
@@ -238,6 +239,7 @@ namespace SpeedyMVVM.DataAccess
         public EntityFilterViewModel(ServiceLocator locator, ObservableCollection<ExpressionModel> expressionModels)
         {
             Initialize(locator);
+            _SelectedFilter = expressionModels[0];
             _Filters = expressionModels;
         }
         #endregion

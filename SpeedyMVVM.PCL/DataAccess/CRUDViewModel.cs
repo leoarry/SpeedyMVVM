@@ -3,6 +3,10 @@ using SpeedyMVVM.Utilities;
 using System.Collections.ObjectModel;
 using SpeedyMVVM.DataAccess.Interfaces;
 using System.Threading.Tasks;
+using SpeedyMVVM.Navigation.Models;
+using System.Linq.Expressions;
+using System.Collections;
+using System.Linq;
 
 namespace SpeedyMVVM.DataAccess
 {
@@ -10,18 +14,24 @@ namespace SpeedyMVVM.DataAccess
     /// Class which implement a basic CRUD operation with an EntityBase.
     /// </summary>
     /// <typeparam name="T">Type of Entity.</typeparam>
-    public class CRUDViewModel<T> : ViewModelBase where T : EntityBase
+    public class CrudViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Fields
         private bool _CanSearch;
         private RelayCommand<T> _AddCommand;
+        private RelayCommand<object> _AddSelectionCommand;
+        private RelayCommand<T> _RemoveCommand;
+        private RelayCommand<T> _PopOutCommand;
+        private RelayCommand _FilterCommand;
+        private RelayCommand _PickEntitiesCommand;
         private RelayCommand _SaveCommand;
-        private RelayCommand _RemoveCommand;
-        private RelayCommand _SearchCommand;
         private IRepositoryService<T> _DataService;
+        private IEntityDialogBoxService _DialogService;
         private EntityFilterViewModel<T> _Filter;
         private ObservableCollection<T> _SelectedItems;
         protected T _SelectedItem;
+        private ObservableCollection<ContextMenuItemModel> _ContextMenu;
+        private Expression<Func<T, bool>> _PickEntitiesExpression;
         #endregion
 
         #region Properties
@@ -74,7 +84,26 @@ namespace SpeedyMVVM.DataAccess
         }
         
         /// <summary>
-        /// Collection of <typeparamref name="T"/>.
+        /// Service for UI dialogs.
+        /// </summary>
+        public IEntityDialogBoxService DialogService
+        {
+            get
+            {
+                return (_DialogService == null) ? _DialogService = ServiceContainer.GetService<IEntityDialogBoxService>() : _DialogService;
+            }
+            set
+            {
+                if (_DialogService != value)
+                {
+                    _DialogService = value;
+                    OnPropertyChanged(nameof(DialogService));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Collection of entities.
         /// </summary>
         public ObservableCollection<T> Items
         {
@@ -87,7 +116,7 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Collection of <typeparamref name="T"/> selected from 'Items'.
+        /// Collection of entities actually selected from 'Items'.
         /// </summary>
         public ObservableCollection<T> SelectedItems
         {
@@ -103,7 +132,7 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Selected <typeparamref name="T"/> from 'Items' collection.
+        /// Selected entity from 'Items' collection.
         /// </summary>
         public virtual T SelectedItem
         {
@@ -113,7 +142,41 @@ namespace SpeedyMVVM.DataAccess
                 if (!object.Equals(_SelectedItem,value))
                 {
                     _SelectedItem = value;
+                    RemoveCommand.IsEnabled = true;
+                    PopOutCommand.IsEnabled = true;
                     OnPropertyChanged(nameof(SelectedItem));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Collection of commands for the entity.
+        /// </summary>
+        public ObservableCollection<ContextMenuItemModel> ContextMenu
+        {
+            get { return (_ContextMenu == null) ? _ContextMenu = GetContextMenu() : _ContextMenu; }
+            set
+            {
+                if (_ContextMenu != value)
+                {
+                    _ContextMenu = value;
+                    OnPropertyChanged(nameof(ContextMenu));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Expression used when executed the command 'PickEntitiesCommand'.
+        /// </summary>
+        public Expression<Func<T, bool>> PickEntitiesExpression
+        {
+            get { return _PickEntitiesExpression; }
+            set
+            {
+                if (_PickEntitiesExpression != value)
+                {
+                    _PickEntitiesExpression = value;
+                    OnPropertyChanged(nameof(PickEntitiesExpression));
                 }
             }
         }
@@ -134,16 +197,68 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Command to remove a <typeparamref name="T"/>.
+        /// Command to populate 'SelectedItems' form parameter (IList).
         /// </summary>
-        public RelayCommand RemoveCommand
+        public RelayCommand<object> AddSelectionCommand
         {
             get
             {
-                return (_RemoveCommand == null)? 
-                    _RemoveCommand :  _RemoveCommand = new RelayCommand(async()=> await RemoveCommandExecute(), true);
+                return (_AddSelectionCommand == null) ?
+                    _AddSelectionCommand = new RelayCommand<object>(async(param)=>await AddSelectionCommandExecute(param), true)
+                    : _AddSelectionCommand;
+            }
+        }
+
+        /// <summary>
+        /// Command to remove a <typeparamref name="T"/>.
+        /// </summary>
+        public RelayCommand<T> RemoveCommand
+        {
+            get
+            {
+                return (_RemoveCommand == null) ?
+                    _RemoveCommand = new RelayCommand<T>(async (param) => await RemoveCommandExecute(param)) : _RemoveCommand;
             }
             set { _RemoveCommand = value; }
+        }
+
+        /// <summary>
+        /// Pop-out the current instance of this CRUDViewModel in a new window. 
+        /// </summary>
+        public RelayCommand<T> PopOutCommand
+        {
+            get
+            {
+                return (_PopOutCommand == null) ?
+                    _PopOutCommand = new RelayCommand<T>(async (param) => await PopOutCommandExecute(param)) : _PopOutCommand;
+            }
+            set { _PopOutCommand = value; }
+        }
+
+        /// <summary>
+        /// Command to search <typeparamref name="T"/> into 'Items' using 'Filter'
+        /// </summary>
+        public RelayCommand FilterCommand
+        {
+            get
+            {
+                return (_FilterCommand == null) ? 
+                    _FilterCommand = new RelayCommand(async()=> await FilterCommandExecute(), true) : _FilterCommand;
+            }
+            set { _FilterCommand = value; }
+        }
+
+        /// <summary>
+        /// Command to pick entities from a repository service and add them to 'Items'.
+        /// </summary>
+        public RelayCommand PickEntitiesCommand
+        {
+            get
+            {
+                return (_PickEntitiesCommand == null) ?
+                    _PickEntitiesCommand = new RelayCommand(async () => await PickEntitiesCommandExecute(PickEntitiesExpression), true) : _PickEntitiesCommand;
+            }
+            set { _PickEntitiesCommand = value; }
         }
 
         /// <summary>
@@ -153,23 +268,10 @@ namespace SpeedyMVVM.DataAccess
         {
             get
             {
-                return (_SaveCommand == null) ? 
-                    _SaveCommand = new RelayCommand(async()=> await SaveCommandExecute(), true) : _SaveCommand;
+                return (_SaveCommand == null) ?
+                    _SaveCommand = new RelayCommand(async () => await SaveCommandExecute(), true) : _SaveCommand;
             }
             set { _SaveCommand = value; }
-        }
-
-        /// <summary>
-        /// Command to search <typeparamref name="T"/> into 'Items' using 'Filter'
-        /// </summary>
-        public RelayCommand SearchCommand
-        {
-            get
-            {
-                return (_SearchCommand == null) ? 
-                    _SearchCommand = new RelayCommand(async()=> await SearchCommandExecute(), true) : _SearchCommand;
-            }
-            set { _SearchCommand = value; }
         }
         #endregion
 
@@ -177,8 +279,8 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Add new entity to 'Items' and through 'DataService' when available.
         /// </summary>
-        /// <param name="entity">Entity to add (if null will automatically create a new istance)</param>
-        /// <returns>Return TRUE in case of operation successfull</returns>
+        /// <param name="entity">Entity to add (if null will automatically create a new instance)</param>
+        /// <returns>Return TRUE in case of operation successful</returns>
         public virtual async Task<bool> AddCommandExecute(T entity)
         {
             if (entity == null) { entity = Activator.CreateInstance<T>(); }
@@ -190,56 +292,123 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Remove 'SelectedItems' if Count>0 or 'SelectedItem' from 'Items' and through 'DataService' when available.
+        /// Populate 'SelectedItems' form parameter (IList).
         /// </summary>
-        /// <returns>Return TRUE in case operation successfull</returns>
-        public virtual async Task<bool> RemoveCommandExecute()
+        /// <param name="parameter"></param>
+        /// <returns>Return true when successful.</returns>
+        public virtual async Task<bool> AddSelectionCommandExecute(object parameter)
         {
-            bool result = false;
-            if (_SelectedItems!=null && _SelectedItems.Count > 0)
+            return await Task.Factory.StartNew(() =>
+            {
+                IList myItems = (IList)parameter;
+                if (myItems.OfType<T>().Count() > 0)
+                {
+                    SelectedItems = myItems.Cast<T>().AsObservableCollection();
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        /// <summary>
+        /// Remove or 'parameter' if not null or 'SelectedItems' if Count>0 or 'SelectedItem' from 'Items' and through 'DataService' when available.
+        /// </summary>
+        /// <returns>Return TRUE in case operation successful</returns>
+        public virtual async Task<bool> RemoveCommandExecute(T entity)
+        {
+            if (entity != null)
+            {
+                entity.EntityStatus = EntityStatusEnum.Deleted;
+                if (DataService != null)
+                    await DataService.RemoveEntityAsync(entity);
+                Items.Remove(entity);
+                return true;
+            }
+            else if (_SelectedItems!=null && _SelectedItems.Count > 0)
             {
                 foreach(var e in _SelectedItems)
                 {
                     e.EntityStatus = EntityStatusEnum.Deleted;
-                    Items.Remove(e);
                     if (DataService != null)
                         await DataService.RemoveEntityAsync(e);
+                    Items.Remove(e);
                 }
                 SelectedItem = default(T);
-                result = true;
+                return true;
             }else if (SelectedItem != null)
             {
                 SelectedItem.EntityStatus = EntityStatusEnum.Deleted;
-                Items.Remove(SelectedItem);
                 if (DataService != null)
                     await DataService.RemoveEntityAsync(SelectedItem);
-                result = true;
-            }
-            return result;
+
+                Items.Remove(SelectedItem);
+                return true;
+            }else
+                return false;
         }
 
         /// <summary>
-        /// Persist the collection 'Items' through 'DataService' when available.
+        /// Open in a new pop-up the current instance of CRUDViewModel (or the entity 'parameter' when not null) using 'DialogService' when available.
         /// </summary>
-        /// <returns>Return TRUE in case of operation successfull</returns>
-        public virtual async Task<bool> SaveCommandExecute()
+        /// <returns>Return TRUE in case operation successful</returns>
+        public virtual async Task<bool> PopOutCommandExecute(T entity)
         {
-            int? result=null;
-            if(DataService!=null)
-                result= await DataService.SaveChangesAsync();
-            if (result == 0)
-                return true;
+            if (ServiceContainer != null && DialogService != null)
+            {
+                if (entity != null)
+                {
+                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name.Split('_')[0], "", entity);
+                    return (bool)await DialogService.ShowEntityDialogBox(vm);
+                }                  
+                else
+                {
+                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name.Split('_')[0], "", this);
+                    return (bool)await DialogService.ShowCRUDDialogBox(vm);
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Retrieve 'Items' from 'DataService' if exist, otherwise filter 'Items'.
+        /// </summary>
+        /// <returns>Return TRUE in case of operation successful</returns>
+        public virtual async Task<bool> FilterCommandExecute()
+        {
+            if (CanSearch)
+                return await Filter.FilterCommandExecute();
             else
                 return false;
         }
 
         /// <summary>
-        /// Retreive 'Items' from 'DataService' if exist, otherwise filter 'Items'.
+        /// Show a Dialog Box to pick entities from a repository service.
         /// </summary>
-        public virtual async Task<bool> SearchCommandExecute()
+        /// <returns>Return TRUE in case of operation successful</returns>
+        public virtual async Task<bool> PickEntitiesCommandExecute(Expression<Func<T,bool>> expression)
         {
-            if (CanSearch)
-                return await Filter.Search();
+            if (!CanSearch) return false;
+            if (ServiceContainer != null && DialogService != null)
+            {
+                var vm = new CrudDialogViewModel<T>(ServiceContainer, string.Format("{0} - Picker", typeof(T).Name.Split('_')[0]), "");
+                if(expression!=null)
+                    vm.ViewModel.Filter.HiddenExpression = expression;
+                return (bool)await DialogService.ShowEntityPickerBox(vm);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Persist the collection 'Items' through 'DataService' when available.
+        /// </summary>
+        /// <returns>Return TRUE in case of operation successful</returns>
+        public virtual async Task<bool> SaveCommandExecute()
+        {
+            int? result = null;
+            if (DataService != null)
+                result = await DataService.SaveChangesAsync();
+            if (result == 0)
+                return true;
             else
                 return false;
         }
@@ -252,39 +421,62 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator with the current services</param>
         public override void Initialize(ServiceLocator locator)
         {
-            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
             ServiceContainer = locator;
+            DataService = locator.GetService<IRepositoryService<T>>();
             _CanSearch = true;
-            DataService = ServiceContainer.GetService<IRepositoryService<T>>();
             IsInitialized = true;
+        }
+
+        /// <summary>
+        /// Get a collection of ContextMenuItemModel containing Add, Remove, Edit and Picker entity.
+        /// </summary>
+        /// <returns>New collection of ContextMenuItemModel.</returns>
+        public virtual ObservableCollection<ContextMenuItemModel> GetContextMenu()
+        {
+            var collection = new ObservableCollection<ContextMenuItemModel>();
+            collection.Add(new ContextMenuItemModel(new RelayCommand(async()=> await AddCommandExecute(null)), string.Format("Add new {0}", typeof(T).Name.Split('_')[0])));
+            collection.Add(new ContextMenuItemModel(new RelayCommand(async () => await RemoveCommandExecute(SelectedItem)), "Remove Selected Item"));
+            collection.Add(new ContextMenuItemModel(new RelayCommand(async () => await PopOutCommandExecute(SelectedItem)), "Edit Selected Item"));
+            collection.Add(new ContextMenuItemModel(PickEntitiesCommand, "Search Items"));
+            return collection;
         }
         #endregion
 
-        #region Costructors
+        #region Constructors
         /// <summary>
-        /// Create a new istance of CRUDViewModel.
+        /// Create a new instance of CRUDViewModel.
         /// </summary>
-        public CRUDViewModel()
+        public CrudViewModel()
         {
             Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
         }
 
         /// <summary>
-        /// Create a new istance of CRUDViewModel and initialize services from parameter 'service'.
+        /// Create a new instance of CRUDViewModel.
+        /// </summary>
+        /// <param name="canSearch">Enable the view model to execute query.</param>
+        public CrudViewModel(bool canSearch)
+        {
+            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
+            _CanSearch = canSearch;
+        }
+
+        /// <summary>
+        /// Create a new instance of CRUDViewModel and initialize services from parameter 'service'.
         /// </summary>
         /// <param name="locator">Service Locator with the current services</param>
-        public CRUDViewModel(ServiceLocator locator)
+        public CrudViewModel(ServiceLocator locator)
         {
             Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
             Initialize(locator);
         }
 
         /// <summary>
-        /// Create a new istance of CRUDViewModel and initialize services from parameter 'service'.
+        /// Create a new instance of CRUDViewModel and initialize services from parameter 'service'.
         /// </summary>
         /// <param name="locator">Service Locator with the current services</param>
-        /// <param name="canSearch">Enable the viewmodel to execute query.</param>
-        public CRUDViewModel(ServiceLocator locator, bool canSearch)
+        /// <param name="canSearch">Enable the view model to execute query.</param>
+        public CrudViewModel(ServiceLocator locator, bool canSearch)
         {
             Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
             Initialize(locator);

@@ -65,7 +65,7 @@ namespace SpeedyMVVM.Test
                 Value="F",
                 ConcatOperator = ExpressionConcatEnum.Or
             });
-            filter.Search().Wait();
+            filter.FilterCommandExecute().Wait();
             Assert.IsTrue(filter.Items.Count == 3);
         }
     }

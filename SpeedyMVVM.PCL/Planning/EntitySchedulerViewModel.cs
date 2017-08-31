@@ -12,7 +12,7 @@ namespace SpeedyMVVM.Planning
     public class EntitySchedulerViewModel<T>:SchedulerViewModel<T> where T:EntityBase,IPlannable
     {
         #region Fields
-        CRUDViewModel<T> _SelectionViewModel;
+        CrudViewModel<T> _SelectionViewModel;
         #endregion
 
         #region Properties
@@ -29,7 +29,7 @@ namespace SpeedyMVVM.Planning
                 SelectionViewModel.Items = SelectedPlannedDay.Items;
             }
         }
-        public CRUDViewModel<T> SelectionViewModel
+        public CrudViewModel<T> SelectionViewModel
         {
             get { return _SelectionViewModel; }
             set
@@ -47,7 +47,7 @@ namespace SpeedyMVVM.Planning
         public override void Initialize(ServiceLocator locator)
         {
             if (SelectionViewModel == null)
-                SelectionViewModel = new CRUDViewModel<T>(locator);
+                SelectionViewModel = new CrudViewModel<T>(locator);
             if (!SelectionViewModel.IsInitialized)
                 SelectionViewModel.Initialize(locator);
             SelectionViewModel.CanSearch = false;
@@ -63,11 +63,11 @@ namespace SpeedyMVVM.Planning
 
         #region Costructors
         public EntitySchedulerViewModel() { }
-        public EntitySchedulerViewModel(CRUDViewModel<T> viewModel)
+        public EntitySchedulerViewModel(CrudViewModel<T> viewModel)
         {
             SelectionViewModel = viewModel;
         }
-        public EntitySchedulerViewModel(CRUDViewModel<T> viewModel, ServiceLocator locator)
+        public EntitySchedulerViewModel(CrudViewModel<T> viewModel, ServiceLocator locator)
         {
             SelectionViewModel = viewModel;
             Initialize(locator);

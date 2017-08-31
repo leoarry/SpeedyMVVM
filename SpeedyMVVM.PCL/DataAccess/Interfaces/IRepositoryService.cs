@@ -15,14 +15,14 @@ namespace SpeedyMVVM.DataAccess.Interfaces
 
         #region Create Methods
         /// <summary>
-        /// Add a new entity to the datacenter.
+        /// Add a new entity to the data center.
         /// </summary>
         /// <param name="entity">Entity to be added.</param>
         /// <returns>Entity added.</returns>
         T AddEntity(T entity);
 
         /// <summary>
-        /// ASYNC - Add a new entity to the datacenter.
+        /// ASYNC - Add a new entity to the data center.
         /// </summary>
         /// <param name="entity">Entity to be added.</param>
         /// <returns>Entity added.</returns>
@@ -31,28 +31,28 @@ namespace SpeedyMVVM.DataAccess.Interfaces
 
         #region Read Methods
         /// <summary>
-        /// Retrive a collection from the datacenter based on the 'Expression' parameter.
+        /// Retrieve a collection from the data center based on the 'Expression' parameter.
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
         ObservableCollection<T> RetrieveCollection(Expression<Func<T, bool>> predicate);
 
         /// <summary>
-        /// ASYNC - Retrive a collection from the datacenter based on the 'Expression' parameter.
+        /// ASYNC - Retrieve a collection from the data center based on the 'Expression' parameter.
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
         Task<ObservableCollection<T>> RetrieveCollectionAsync(Expression<Func<T, bool>> predicate);
 
         /// <summary>
-        /// Retrive a collection from the datacenter of specified type 'TEntity' based on the 'Expression' parameter.
+        /// Retrieve a collection from the data center of specified type 'TEntity' based on the 'Expression' parameter.
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
         ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase;
 
         /// <summary>
-        /// ASYNC - Retrive a collection from the datacenter of specified type 'TEntity' based on the 'Expression' parameter.
+        /// ASYNC - Retrieve a collection from the data center of specified type 'TEntity' based on the 'Expression' parameter.
         /// </summary>
         /// <param name="predicate">Expression to use.</param>
         /// <returns>Result of the query</returns>
@@ -77,14 +77,14 @@ namespace SpeedyMVVM.DataAccess.Interfaces
 
         #region Delete Methods
         /// <summary>
-        /// Remove an existing entity from the datacenter.
+        /// Remove an existing entity from the data center.
         /// </summary>
         /// <param name="entity">Entity to be removed.</param>
         /// <returns>Entity removed.</returns>
         T RemoveEntity(T entity);
 
         /// <summary>
-        /// ASYNC - Remove an existing entity from the datacenter.
+        /// ASYNC - Remove an existing entity from the data center.
         /// </summary>
         /// <param name="entity">Entity to be removed.</param>
         /// <returns>Entity removed.</returns>
@@ -93,13 +93,13 @@ namespace SpeedyMVVM.DataAccess.Interfaces
 
         #region Persist Data Methods
         /// <summary>
-        /// Persist the data into the datacenter.
+        /// Persist the data into the data center.
         /// </summary>
         /// <returns>Return '0' in case of failure.</returns>
         int SaveChanges();
 
         /// <summary>
-        /// ASYNC - Persist the data into the datacenter.
+        /// ASYNC - Persist the data into the data center.
         /// </summary>
         /// <returns>Return '0' in case of failure.</returns>
         Task<int> SaveChangesAsync();

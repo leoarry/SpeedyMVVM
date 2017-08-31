@@ -8,7 +8,6 @@
     <owners>larri</owners>
     <licenseUrl>https://github.com/leoarry/SpeedyMVVM/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/leoarry/SpeedyMVVM</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A Cross-Platform solution of MVVM Implementing classes.</description>
     <releaseNotes></releaseNotes>

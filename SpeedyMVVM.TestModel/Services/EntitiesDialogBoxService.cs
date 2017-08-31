@@ -11,16 +11,21 @@ using SpeedyMVVM.Navigation.Enumerators;
 
 namespace SpeedyMVVM.TestModel.Services
 {
-    public class EntitiesDialogBoxService : IEntitiesDialogBoxService
+    public class EntitiesDialogBoxService : IEntityDialogBoxService
     {
-        public bool? ShowEntityEditorBox<T>(EntityEditorBoxViewModel<T> myViewModel) where T : EntityBase
+        public async Task<bool?> ShowEntityDialogBox<T>(CrudDialogViewModel<T> myViewModel) where T : EntityBase
         {
-            return true;
+            return await Task.Factory.StartNew(()=> { return true; });
         }
 
-        public bool? ShowEntityPickerBox<T>(EntityPickerBoxViewModel<T> myViewModel) where T : EntityBase
+        public async Task<bool?> ShowCRUDDialogBox<T>(CrudDialogViewModel<T> myViewModel) where T : EntityBase
         {
-            return true;
+            return await Task.Factory.StartNew(() => { return true; });
+        }
+
+        public async Task<bool?> ShowEntityPickerBox<T>(CrudDialogViewModel<T> myViewModel) where T : EntityBase
+        {
+            return await Task.Factory.StartNew(() => { return true; });
         }
 
         public string ShowInputBox(string message, string title, string iconPath)
@@ -29,11 +34,6 @@ namespace SpeedyMVVM.TestModel.Services
         }
 
         public bool? ShowMessageBox(string message, string title, DialogBoxEnum BoxType, DialogBoxIconEnum icon)
-        {
-            return true;
-        }
-        
-        public bool? ShowPrintEntitiesDialog<T>(ObservableCollection<T> myCollection) where T : EntityBase
         {
             return true;
         }

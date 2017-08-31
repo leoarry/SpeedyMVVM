@@ -6,6 +6,8 @@ namespace SpeedyMVVM.Navigation.Enumerators
         Error,
         Alert,
         Question,
-        Info
+        Info,
+        OperationSuccessful,
+        OperationAborted
     }
 }

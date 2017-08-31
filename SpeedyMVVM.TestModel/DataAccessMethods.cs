@@ -27,7 +27,7 @@ namespace SpeedyMVVM.TestModel
         {
             var locator = new ServiceLocator();
             locator.RegisterService<IRepositoryService<UserModel>>(new RepositoryService<UserModel> { List = GetListOfUser() });
-            locator.RegisterService<IEntitiesDialogBoxService>(new EntitiesDialogBoxService());
+            locator.RegisterService<IEntityDialogBoxService>(new EntitiesDialogBoxService());
             return locator;
         }
     }

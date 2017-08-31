@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 namespace SpeedyMVVM.DataAccess
 {
     /// <summary>
-    /// View model to edit an entity and persist the datas using services.
+    /// View model to pop-up a CRUDViewModel or an entity in a new dialog box.
     /// </summary>
     /// <typeparam name="T">Type of entity.</typeparam>
-    public class EntityEditorBoxViewModel<T> : ViewModelBase, IDialogBox where T : EntityBase
+    public class CrudDialogViewModel<T> : ViewModelBase, IDialogBox where T : EntityBase
     {
 
         #region Fields
@@ -18,8 +18,7 @@ namespace SpeedyMVVM.DataAccess
         private string _Title;
         private bool _IsVisible;
         private bool? _DialogResult;
-        private T _Selection;
-        private RelayCommand _SaveCommand;
+        private CrudViewModel<T> _ViewModel;
         #endregion
 
         #region IDialogBox Implementation
@@ -83,8 +82,8 @@ namespace SpeedyMVVM.DataAccess
                 {
                     _DialogResult = value;
                     OnPropertyChanged(nameof(DialogResult));
-                    DialogResultChanged?.Invoke(this, value);
                 }
+                DialogResultChanged?.Invoke(this, value);
             }
         }
 
@@ -96,25 +95,23 @@ namespace SpeedyMVVM.DataAccess
         
         #region Properties
         /// <summary>
-        /// Item to edit.
+        /// CRUD View Model to expose in the pop-up.
         /// </summary>
-        public T Selection
+        public CrudViewModel<T> ViewModel
         {
-            get { return _Selection; }
+            get
+            {
+                return (_ViewModel == null) ? _ViewModel = new CrudViewModel<T>() : _ViewModel;
+            }
             set
             {
-                if (!_Selection.Equals(value))
+                if (_ViewModel != value)
                 {
-                    _Selection = value;
-                    OnPropertyChanged(nameof(Selection));
+                    _ViewModel = value;
+                    OnPropertyChanged(nameof(ViewModel));
                 }
             }
         }
-
-        /// <summary>
-        /// Repository service where retreive datas from.
-        /// </summary>
-        public IRepositoryService<T> DataService { get; set; }
         #endregion
 
         #region Commands
@@ -123,39 +120,47 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public RelayCommand SaveCommand
         {
-            get
-            {
-                return (_SaveCommand == null) ? 
-                    _SaveCommand = new RelayCommand(async () => await SaveCommandExecution(), true) : _SaveCommand;
-            }
-            set { _SaveCommand = value; }
+            get { return new RelayCommand(async () => DialogResult = await ViewModel.SaveCommandExecute(), true); }
         }
-        /// <summary>
-        /// Set DialogResult = false.
-        /// </summary>
-        public RelayCommand ExitCommand { get { return new RelayCommand(() => DialogResult = false, true); } }
-        #endregion
 
-        #region Commands Execution
         /// <summary>
-        /// Persist changes using 'DataService'.
+        /// Command to populate 'SelectedItems' form parameter (IList).
         /// </summary>
-        /// <returns>0 if successfully.</returns>
-        public async Task<bool?> SaveCommandExecution()
+        public RelayCommand<object> AddSelectionCommand
         {
-            if (DataService != null)
-            {
-                if (await DataService.SaveChangesAsync() == 0)
-                    return DialogResult = true;
-                else
-                    return DialogResult = false; 
-            }
-            else
-                return DialogResult = false;
+            get { return new RelayCommand<object>(async (param) => DialogResult = await ViewModel.AddSelectionCommandExecute(param), true); }
         }
+
+        /// <summary>
+        /// Command to execute the query.
+        /// </summary>
+        public RelayCommand SearchCommand
+        {
+            get { return ViewModel.FilterCommand; }
+        }
+
+        /// <summary>
+        /// Confirmation command (DialogResult = true).
+        /// </summary>
+        public RelayCommand ConfirmCommand { get { return new RelayCommand(() => DialogResult = true, true); } }
+
+        /// <summary>
+        /// Declination command (DialogResult = false).
+        /// </summary>
+        public RelayCommand DeclineCommand { get { return new RelayCommand(DeclineCommandExecute, true); } }
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Void executed by Decline Command (DialogResult = false).
+        /// </summary>
+        protected virtual void DeclineCommandExecute() { DialogResult = false; }
+
+        /// <summary>
+        /// Void executed by Confirm Command (DialogResult = true).
+        /// </summary>
+        protected virtual void ConfirmCommandExecute() { DialogResult = true; }
+
         /// <summary>
         /// Initialize EntityEditor using 'locator'.
         /// </summary>
@@ -163,22 +168,22 @@ namespace SpeedyMVVM.DataAccess
         public override void Initialize(ServiceLocator locator)
         {
             this.ServiceContainer = locator;
-            DataService = locator.GetService<IRepositoryService<T>>();
+            ViewModel = new CrudViewModel<T>(locator);
             IsInitialized = true;
         }
         #endregion
 
-        #region Costructors
+        #region Constructors
         /// <summary>
         /// Create a new instance of EntityEditor.
         /// </summary>
-        public EntityEditorBoxViewModel() { }
+        public CrudDialogViewModel() { }
 
         /// <summary>
         /// Create a new instance of EntityEditor and initialize it using 'locator'. 
         /// </summary>
         /// <param name="locator">Service Locator containing services</param>
-        public EntityEditorBoxViewModel(ServiceLocator locator)
+        public CrudDialogViewModel(ServiceLocator locator)
         {
             Initialize(locator);
         }
@@ -189,13 +194,41 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator containing services.</param>
         /// <param name="title">Title of the dialog box.</param>
         /// <param name="iconPath">Icon of the dialog box.</param>
-        /// <param name="selection">Entity to edit.</param>
-        public EntityEditorBoxViewModel(ServiceLocator locator, string title, string iconPath, T selection)
+        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath)
         {
+            Initialize(locator);
             _Title = title;
             _IconPath = iconPath;
-            _Selection = selection;
-            Initialize(locator);            
+        }
+
+        /// <summary>
+        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
+        /// </summary>
+        /// <param name="locator">Service Locator containing services.</param>
+        /// <param name="title">Title of the dialog box.</param>
+        /// <param name="iconPath">Icon of the dialog box.</param>
+        /// <param name="selection">Entity to pop-up.</param>
+        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, T selection)
+        {
+            Initialize(locator);
+            _Title = title;
+            _IconPath = iconPath;
+            _ViewModel.SelectedItem = selection;
+        }
+
+        /// <summary>
+        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
+        /// </summary>
+        /// <param name="locator">Service Locator containing services.</param>
+        /// <param name="title">Title of the dialog box.</param>
+        /// <param name="iconPath">Icon of the dialog box.</param>
+        /// <param name="viewModel">CRUD View Model to pop-up.</param>
+        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, CrudViewModel<T> viewModel)
+        {
+            Initialize(locator);
+            _Title = title;
+            _IconPath = iconPath;
+            _ViewModel = viewModel;
         }
         #endregion
     }
