@@ -168,7 +168,8 @@ namespace SpeedyMVVM.DataAccess
         public override void Initialize(ServiceLocator locator)
         {
             this.ServiceContainer = locator;
-            ViewModel = new CrudViewModel<T>(locator);
+            if (!_ViewModel.IsInitialized)
+                _ViewModel.Initialize(locator);
             IsInitialized = true;
         }
         #endregion
@@ -177,7 +178,10 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Create a new instance of EntityEditor.
         /// </summary>
-        public CrudDialogViewModel() { }
+        public CrudDialogViewModel()
+        {
+            _ViewModel = new CrudViewModel<T>();
+        }
 
         /// <summary>
         /// Create a new instance of EntityEditor and initialize it using 'locator'. 
@@ -185,6 +189,7 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator containing services</param>
         public CrudDialogViewModel(ServiceLocator locator)
         {
+            _ViewModel = new CrudViewModel<T>();
             Initialize(locator);
         }
 
@@ -196,9 +201,10 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="iconPath">Icon of the dialog box.</param>
         public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath)
         {
-            Initialize(locator);
             _Title = title;
             _IconPath = iconPath;
+            _ViewModel = new CrudViewModel<T>();
+            Initialize(locator);
         }
 
         /// <summary>
@@ -210,10 +216,11 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="selection">Entity to pop-up.</param>
         public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, T selection)
         {
-            Initialize(locator);
             _Title = title;
             _IconPath = iconPath;
+            _ViewModel = new CrudViewModel<T>();
             _ViewModel.SelectedItem = selection;
+            Initialize(locator);
         }
 
         /// <summary>
@@ -225,7 +232,20 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="viewModel">CRUD View Model to pop-up.</param>
         public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, CrudViewModel<T> viewModel)
         {
+            _Title = title;
+            _IconPath = iconPath;
+            _ViewModel = viewModel;
             Initialize(locator);
+        }
+
+        /// <summary>
+        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
+        /// </summary>
+        /// <param name="title">Title of the dialog box.</param>
+        /// <param name="iconPath">Icon of the dialog box.</param>
+        /// <param name="viewModel">CRUD View Model to pop-up.</param>
+        public CrudDialogViewModel(string title, string iconPath, CrudViewModel<T> viewModel)
+        {
             _Title = title;
             _IconPath = iconPath;
             _ViewModel = viewModel;

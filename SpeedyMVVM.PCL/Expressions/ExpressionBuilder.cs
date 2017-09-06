@@ -137,7 +137,7 @@ namespace SpeedyMVVM.Expressions
                     constant = Expression.Convert(Expression.Constant(filter.Value), enumType);
                     break;
                 default:
-                    constant = Expression.Constant(filter.Value);
+                    constant = Expression.Convert(Expression.Constant(filter.Value), prop.PropertyType);//Expression.Constant(filter.Value);
                     break;
             }
             switch (filter.Operator)

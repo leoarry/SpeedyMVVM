@@ -1,28 +1,44 @@
 ﻿using SpeedyMVVM.Navigation.Interfaces;
 using SpeedyMVVM.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace SpeedyMVVM.Planning
 {
-    public class SchedulerViewModel<T>: ViewModelBase, IPageViewModel where T : IPlannable
+    public abstract class SchedulerViewModel<T>: ViewModelBase, IPageViewModel where T : IPlannable
     {
 
         #region Fields
         private int _FirstDay;
         private DateTime _StartingDate;
-        private ObservableCollection<PlannedDay<T>> _Plan;
-        protected PlannedDay<T> _SelectedPlannedDay;
-        private RelayCommand<PlannedDay<T>> _SelectPlanCommand;
-        private IQueryable<T> _DataSource;
-        private int _PlanningLenght;
+        private DateTime _EndingDate;
+        private ObservableCollection<PlannedDayModel<T>> _Plan;
+        private PlannedDayModel<T> _SelectedPlannedDay;
+        private RelayCommand _ComputePlanCommand;
+        private RelayCommand<PlannedDayModel<T>> _SelectPlanCommand;
+        private ObservableCollection<T> _DataSource;
+        private Expression<Func<T, bool>> _QueryExpression;
         #endregion
 
         #region IPageViewModel Implementation
+        /// <summary>
+        /// Path of the icon to show for this view model.
+        /// </summary>
         public string IconPath { get; set; }
+
+        /// <summary>
+        /// Title of the View Model
+        /// </summary>
         public string Title { get; set; }
+
+        /// <summary>
+        /// Get/Set View Model visibility.
+        /// </summary>
         public bool IsVisible { get; set; }
         #endregion
         
@@ -48,7 +64,10 @@ namespace SpeedyMVVM.Planning
         /// </summary>
         public DateTime StartingDate
         {
-            get { return _StartingDate; }
+            get
+            {
+                return _StartingDate;
+            }
             set
             {
                 if (_StartingDate != value)
@@ -60,9 +79,28 @@ namespace SpeedyMVVM.Planning
         }
 
         /// <summary>
+        /// Date when the planning must finish.
+        /// </summary>
+        public DateTime EndingDate
+        {
+            get
+            {
+                return _EndingDate;
+            }
+            set
+            {
+                if (_EndingDate != value)
+                {
+                    _EndingDate = value;
+                    OnPropertyChanged(nameof(EndingDate));
+                }
+            }
+        }
+
+        /// <summary>
         /// Collection of planned day.
         /// </summary>
-        public ObservableCollection<PlannedDay<T>> Plan
+        public ObservableCollection<PlannedDayModel<T>> Plan
         {
             get { return _Plan; }
             set
@@ -78,7 +116,7 @@ namespace SpeedyMVVM.Planning
         /// <summary>
         /// Selected planned day.
         /// </summary>
-        public virtual PlannedDay<T> SelectedPlannedDay
+        public PlannedDayModel<T> SelectedPlannedDay
         {
             get { return _SelectedPlannedDay; }
             set
@@ -88,55 +126,88 @@ namespace SpeedyMVVM.Planning
                     if (_SelectedPlannedDay != null) { _SelectedPlannedDay.IsSelected = false; }
                     _SelectedPlannedDay = value;
                     _SelectedPlannedDay.IsSelected = true;
+                    _SelectedPlannedDay.Items.CollectionChanged += SelectedPlannedDay_CollectionChanged;
                     OnPropertyChanged(nameof(SelectedPlannedDay));
                 }
             }
         }
         
         /// <summary>
-        /// Datasource to query.
+        /// Collection of IPlannable objects to use to create the Plan.
         /// </summary>
-        public IQueryable<T> DataSource
+        protected ObservableCollection<T> DataSource { get; set; }
+        #endregion
+
+        #region Commands
+        /// <summary>
+        /// Command to execute the scheduling calculation
+        /// </summary>
+        public RelayCommand ComputePlanCommand
         {
-            get { return _DataSource; }
+            get
+            {
+                return (_ComputePlanCommand == null) ? _ComputePlanCommand = new RelayCommand(async()=> await ComputePlanCommandExecute(), true) : _ComputePlanCommand;
+            }
             set
             {
-                if (_DataSource != value)
+                if (_ComputePlanCommand != value)
                 {
-                    _DataSource = value;
-                    OnPropertyChanged(nameof(DataSource));
+                    _ComputePlanCommand = value;
+                    OnPropertyChanged(nameof(ComputePlanCommandExecute));
                 }
             }
         }
 
         /// <summary>
-        /// Set the lenght in days of the plan calculation.
+        /// Command to set the 'SelectedPlannedDay' from parameter.
         /// </summary>
-        public int PlanningLenght
-        {
-            get { return _PlanningLenght; }
-            set
-            {
-                if (_PlanningLenght != value)
-                {
-                    _PlanningLenght = value;
-                    OnPropertyChanged(nameof(PlanningLenght));
-                }
-            }
-        }
-        #endregion
-
-        #region Commands
-        public RelayCommand<PlannedDay<T>> SelectPlanCommand
+        public RelayCommand<PlannedDayModel<T>> SelectPlanCommand
         {
             get { return (_SelectPlanCommand == null) ? 
-                    _SelectPlanCommand = new RelayCommand<PlannedDay<T>>(SelectPlanCommandExecute, true) : _SelectPlanCommand; }
+                    _SelectPlanCommand = new RelayCommand<PlannedDayModel<T>>(SelectPlanCommandExecute, true) : _SelectPlanCommand; }
             set { _SelectPlanCommand = value; }
         }
         #endregion
 
         #region Commands Executions
-        public void SelectPlanCommandExecute(PlannedDay<T> plan)
+        /// <summary>
+        /// Create the Plan from 'StartingDate' to 'EndingDate' using the collection 'DataSource'.
+        /// </summary>
+        protected virtual async Task<bool> ComputePlanCommandExecute()
+        {
+            if (_StartingDate > _EndingDate)
+                throw new ArgumentOutOfRangeException(nameof(StartingDate), "Can't be major than EndingDate!");
+            if (_EndingDate < _StartingDate)
+                throw new ArgumentOutOfRangeException(nameof(EndingDate), "Can't be major than StartingDate!");
+
+            //Set the first day
+            if (_StartingDate.DayOfWeek == DayOfWeek.Sunday) { FirstDay = 6; }
+            else { FirstDay = (int)_StartingDate.DayOfWeek - 1; }
+
+            Plan = await Task.Factory.StartNew(() =>
+            {
+                var myPlan = new ObservableCollection<PlannedDayModel<T>>();
+
+                //Instance the Plan
+                DateTime date = _StartingDate;
+                while (date <= _EndingDate)
+                {
+                    var p = new PlannedDayModel<T>(date);
+                    p.Items = DataSource;
+                    myPlan.Add(p);
+                    date = date.AddDays(1);
+                }
+                SelectedPlannedDay = myPlan.Where(p => p.PlannedDate == _StartingDate).FirstOrDefault();
+                return myPlan;
+            });
+            return true;
+        }
+
+        /// <summary>
+        /// Set parameter 'plan' as 'SelectedPlannedDay'.
+        /// </summary>
+        /// <param name="plan">Planned Day to set as Selected.</param>
+        public void SelectPlanCommandExecute(PlannedDayModel<T> plan)
         {
             if (plan == null) { return; }
             SelectedPlannedDay = plan;
@@ -144,13 +215,20 @@ namespace SpeedyMVVM.Planning
         #endregion
 
         #region Methods
-        protected T GetNewItemToAdd()
+        /// <summary>
+        /// Event handler for SelectedPlannedDay.Items.CollectionChanged.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        protected virtual void SelectedPlannedDay_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (SelectedPlannedDay == null) { return default(T); }
-            var item = Activator.CreateInstance<T>();
-            item.PlannedDate = SelectedPlannedDay.PlannedDate;
-            return item;
+            if(e.Action== NotifyCollectionChangedAction.Add)
+            {
+                foreach(T i in e.NewItems)
+                    i.PlannedDate = SelectedPlannedDay.PlannedDate;
+            }
         }
+
         /// <summary>
         /// Initialize the current instance of SchedulerViewModel.
         /// </summary>
@@ -158,49 +236,21 @@ namespace SpeedyMVVM.Planning
         public override void Initialize(ServiceLocator service)
         {
             this.ServiceContainer = service;
-            SelectPlanCommand = new RelayCommand<PlannedDay<T>>(SelectPlanCommandExecute, true);
-            SetMonthPlan();
+            var date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+            _StartingDate = date;
+            _EndingDate = date.AddDays(6);
             IsInitialized = true;
-        }
-
-        /// <summary>
-        /// Initailize the Plan property.
-        /// </summary>
-        protected virtual async void SetMonthPlan()
-        {
-            Plan = await Task.Factory.StartNew(() =>
-            {
-                var myPlan = new ObservableCollection<PlannedDay<T>>();
-                var startDate = new DateTime(StartingDate.Year, StartingDate.Month, StartingDate.Day);
-                //Set the first day
-                if (startDate.DayOfWeek == DayOfWeek.Sunday) { FirstDay = 6; }
-                else { FirstDay = (int)startDate.DayOfWeek - 1; }
-                //Get the ending date
-                DateTime endDate = startDate.AddDays((double)PlanningLenght);
-                //Instance the Plan
-                while (startDate <= endDate)
-                {
-                    var p = new PlannedDay<T>(startDate);
-                    myPlan.Add(p);
-                    startDate = startDate.AddDays(1);
-                }
-
-                //Query the datasource
-                var query = DataSource.Where(r => r.PlannedDate >= new DateTime(StartingDate.Year, StartingDate.Month, StartingDate.Day)
-                                                     && r.PlannedDate <= endDate);
-                //Create the month planner list
-                foreach (var k in myPlan)
-                {
-                    k.Items = query.Where(r => r.PlannedDate >= k.PlannedDate &&
-                                                   r.PlannedDate < k.PlannedDate.AddDays(1)).AsObservableCollection();
-                }
-                return myPlan;
-            });
         }
         #endregion
 
-        #region Costructors
-
+        #region Constructors
+        public SchedulerViewModel()
+        {
+        }
+        public SchedulerViewModel(ServiceLocator locator)
+        {
+            Initialize(locator);
+        }
         #endregion
     }
 }

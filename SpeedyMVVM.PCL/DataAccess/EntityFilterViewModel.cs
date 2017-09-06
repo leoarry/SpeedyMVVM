@@ -18,7 +18,7 @@ namespace SpeedyMVVM.DataAccess
     public class EntityFilterViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Field
-        private RelayCommand _FilterCommand;
+        private RelayCommand<object> _FilterCommand;
         private ObservableCollection<ExpressionModel> _Filters;
         private ExpressionModel _SelectedFilter;
         private ObservableCollection<T> _Items;
@@ -120,11 +120,11 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Command to execute the query using 'DataService' to retrieve the collection 'Items'.
         /// </summary>
-        public RelayCommand FilterCommand
+        public RelayCommand<object> FilterCommand
         {
             get
             {
-                return (_FilterCommand == null) ? _FilterCommand = new RelayCommand(async()=> await FilterCommandExecute(), true) : _FilterCommand;
+                return (_FilterCommand == null) ? _FilterCommand = new RelayCommand<object>(async(param)=> await FilterCommandExecute(param), true) : _FilterCommand;
             }
         }
         #endregion
@@ -135,11 +135,25 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public virtual async Task<bool> FilterCommandExecute()
         {
+            if (_SelectedFilter != null && !Filters.Contains(_SelectedFilter))
+                Filters.Add(_SelectedFilter);
             if (DataService != null)
                 Items = await GetCollectionFromDataService();
             else
                 Items = await FilterCollection(Items);
             return true;
+        }
+
+        /// <summary>
+        /// Set SelectedFilter.Value as parameter 'value' (if not null) then execute FilterCommandExecute().
+        /// </summary>
+        /// <param name="value">Value to set for selected Filter</param>
+        /// <returns></returns>
+        private async Task<bool> FilterCommandExecute(object value)
+        {
+            if (value != null)
+                SelectedFilter.Value = value;
+            return await FilterCommandExecute();
         }
 
         /// <summary>

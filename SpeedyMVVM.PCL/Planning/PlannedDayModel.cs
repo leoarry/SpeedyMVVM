@@ -1,10 +1,11 @@
 ﻿using SpeedyMVVM.Utilities;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace SpeedyMVVM.Planning
 {
-    public class PlannedDay<T> : ObservableObject where T : IPlannable
+    public class PlannedDayModel<T> : ObservableObject where T : IPlannable
     {
 
         #region Fields
@@ -45,7 +46,12 @@ namespace SpeedyMVVM.Planning
         }
         public ObservableCollection<T> Items
         {
-            get { return _Items; }
+            get
+            {
+                return _Items= _Items.Where(r => r.PlannedDate >= PlannedDate &&
+                                                 r.PlannedDate < PlannedDate.AddDays(1))
+                                     .AsObservableCollection(); ;
+            }
             set
             {
                 if (value != _Items)
@@ -69,14 +75,14 @@ namespace SpeedyMVVM.Planning
         }
         #endregion
 
-        #region Costructors
-        public PlannedDay(DateTime plannedDate, ObservableCollection<T> items)
+        #region Constructors
+        public PlannedDayModel(DateTime plannedDate, ObservableCollection<T> items)
         {
             _PlannedDate = plannedDate;
             _Items = items;
         }
 
-        public PlannedDay(DateTime plannedDate)
+        public PlannedDayModel(DateTime plannedDate)
         {
             _PlannedDate = plannedDate;
             _Items = new ObservableCollection<T>();

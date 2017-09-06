@@ -151,7 +151,7 @@ namespace SpeedyMVVM.Navigation
                 if (ser.CurrentUserLevel > pLevel.AccessLevel) { p.IsVisible = false; }
                 else { p.IsVisible = true; }
 
-                if (p.IsVisible && p is PageManagerViewModel)
+                if (p.IsVisible && p.GetType() == typeof(PageManagerViewModel))
                     ((PageManagerViewModel)p).SetPagesVisibility();
             }
         }

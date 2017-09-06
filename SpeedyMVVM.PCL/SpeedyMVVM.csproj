@@ -61,7 +61,7 @@
     <Compile Include="Utilities\ObservableObject.cs" />
     <Compile Include="Utilities\OcPropertyChangedListener.cs" />
     <Compile Include="Utilities\ViewModelBase.cs" />
-    <Compile Include="Planning\PlannedDay.cs" />
+    <Compile Include="Planning\PlannedDayModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Navigation\Enumerators\DialogBoxEnum.cs" />
     <Compile Include="Navigation\Enumerators\DialogBoxIconEnum.cs" />

@@ -86,8 +86,8 @@ namespace SpeedyMVVM.Navigation
                 {
                     _DialogResult = value;
                     OnPropertyChanged(nameof(DialogResult));
-                    DialogResultChanged?.Invoke(this, value);
                 }
+                DialogResultChanged?.Invoke(this, value);
             }
         }
 
@@ -271,7 +271,7 @@ namespace SpeedyMVVM.Navigation
                     _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
                     _ConfirmCommandText = "OK";
-                    _CancelCommandText = "CANCEL";
+                    _CancelCommandText = "Cancel";
                     break;
                 case DialogBoxEnum.Ok:
                     _ConfirmCommandVisibility = true;
@@ -281,27 +281,27 @@ namespace SpeedyMVVM.Navigation
                     _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
                     _ConfirmCommandText = "OK";
-                    _CancelCommandText = "CANCEL";
+                    _CancelCommandText = "Cancel";
                     break;
                 case DialogBoxEnum.YesCancel:
                     _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "YES";
-                    _CancelCommandText = "CANCEL";
+                    _ConfirmCommandText = "Yes";
+                    _CancelCommandText = "Cancel";
                     break;
                 case DialogBoxEnum.YesNo:
                     _ConfirmCommandVisibility = true;
                     _DeclineCommandVisibility = true;
-                    _ConfirmCommandText = "YES";
-                    _DeclineCommandText = "NO";
+                    _ConfirmCommandText = "Yes";
+                    _DeclineCommandText = "No";
                     break;
                 case DialogBoxEnum.YesNoCancel:
                     _ConfirmCommandVisibility = true;
                     _DeclineCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "YES";
-                    _DeclineCommandText = "NO";
-                    _CancelCommandText = "CANCEL";
+                    _ConfirmCommandText = "Yes";
+                    _DeclineCommandText = "No";
+                    _CancelCommandText = "Cancel";
                     break;
             }
             IsInitialized = true;
@@ -340,6 +340,7 @@ namespace SpeedyMVVM.Navigation
             _DialogBoxType = dialogBoxType;
             _Title = title;
             _Message = message;
+            Initialize(null);
         }
 
         /// <summary>
@@ -355,6 +356,7 @@ namespace SpeedyMVVM.Navigation
             _Title = title;
             _Message = message;
             _IconPath = iconPath;
+            Initialize(null);
         }
         #endregion
 

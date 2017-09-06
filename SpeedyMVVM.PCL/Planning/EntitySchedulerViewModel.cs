@@ -6,27 +6,29 @@ using System.Threading.Tasks;
 using SpeedyMVVM.Utilities;
 using SpeedyMVVM.DataAccess;
 using SpeedyMVVM.DataAccess.Interfaces;
+using System.Linq.Expressions;
+using SpeedyMVVM.Expressions;
 
 namespace SpeedyMVVM.Planning
 {
     public class EntitySchedulerViewModel<T>:SchedulerViewModel<T> where T:EntityBase,IPlannable
     {
         #region Fields
-        CrudViewModel<T> _SelectionViewModel;
+        private Expression<Func<T, bool>> _DataSourceQuery;
+        private CrudViewModel<T> _SelectionViewModel;
         #endregion
 
         #region Properties
-        public override PlannedDay<T> SelectedPlannedDay
+        public Expression<Func<T,bool>> DataSourceQuery
         {
-            get
-            {
-                return base.SelectedPlannedDay;
-            }
-
+            get { return _DataSourceQuery; }
             set
             {
-                base.SelectedPlannedDay = value;
-                SelectionViewModel.Items = SelectedPlannedDay.Items;
+                if (_DataSourceQuery != value)
+                {
+                    _DataSourceQuery = value;
+                    OnPropertyChanged(nameof(DataSourceQuery));
+                }
             }
         }
         public CrudViewModel<T> SelectionViewModel
@@ -43,6 +45,20 @@ namespace SpeedyMVVM.Planning
         }
         #endregion
 
+        #region Command Executions
+        protected override async Task<bool> ComputePlanCommandExecute()
+        {
+            Expression<Func<T, bool>> query = r => r.PlannedDate >= StartingDate &&
+                                                   r.PlannedDate <= EndingDate;
+            if (DataSourceQuery != null)
+                query = query.And(DataSourceQuery);
+
+            DataSource = await ServiceContainer.GetService<IRepositoryService<T>>()
+                .RetrieveCollectionAsync(query);
+            return await base.ComputePlanCommandExecute();
+        }
+        #endregion
+
         #region Methods
         public override void Initialize(ServiceLocator locator)
         {
@@ -51,26 +67,38 @@ namespace SpeedyMVVM.Planning
             if (!SelectionViewModel.IsInitialized)
                 SelectionViewModel.Initialize(locator);
             SelectionViewModel.CanSearch = false;
-            SelectionViewModel.AddCommand = new RelayCommand<T>(async (item) =>
-            {
-                item = GetNewItemToAdd();
-                await SelectionViewModel.AddCommandExecute(item);
-            }, true);
-            DataSource = SelectionViewModel.DataService.DataSet;
             base.Initialize(locator);
+        }
+
+        protected override void OnPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case nameof(SelectedPlannedDay):
+                    SelectionViewModel.Items = SelectedPlannedDay.Items;
+                    SelectionViewModel.Items.CollectionChanged += SelectedPlannedDay_CollectionChanged;
+                    break;
+            }
+            base.OnPropertyChanged(propertyName);
+        }
+
+        protected override void SelectedPlannedDay_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            base.SelectedPlannedDay_CollectionChanged(sender, e);
+            OnPropertyChanged(nameof(SelectionViewModel.Items));
+            OnPropertyChanged(nameof(SelectedPlannedDay.Items));
         }
         #endregion
 
-        #region Costructors
-        public EntitySchedulerViewModel() { }
-        public EntitySchedulerViewModel(CrudViewModel<T> viewModel)
+        #region Constructors
+        public EntitySchedulerViewModel():base() { }
+        public EntitySchedulerViewModel(CrudViewModel<T> viewModel) : base()
         {
             SelectionViewModel = viewModel;
         }
-        public EntitySchedulerViewModel(CrudViewModel<T> viewModel, ServiceLocator locator)
+        public EntitySchedulerViewModel(CrudViewModel<T> viewModel, ServiceLocator locator) : base(locator)
         {
             SelectionViewModel = viewModel;
-            Initialize(locator);
         }
         #endregion
     }

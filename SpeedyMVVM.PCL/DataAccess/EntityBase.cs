@@ -50,7 +50,8 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="propertyName">The property that has a new value.</param>
         protected override void OnPropertyChanged(string propertyName)
         {
-            this.EntityStatus = EntityStatusEnum.Modified;
+            if(propertyName!=nameof(EntityStatus))
+                this.EntityStatus = EntityStatusEnum.Modified;
             base.OnPropertyChanged(propertyName);
         }
         #endregion

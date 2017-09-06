@@ -29,9 +29,11 @@ namespace SpeedyMVVM.DataAccess
         private IEntityDialogBoxService _DialogService;
         private EntityFilterViewModel<T> _Filter;
         private ObservableCollection<T> _SelectedItems;
-        protected T _SelectedItem;
+        private T _SelectedItem;
         private ObservableCollection<ContextMenuItemModel> _ContextMenu;
         private Expression<Func<T, bool>> _PickEntitiesExpression;
+        private ContextMenuItemModel _RemoveSelectedItemCommand;
+        private ContextMenuItemModel _PopOutSelectedItemCommand;
         #endregion
 
         #region Properties
@@ -52,7 +54,7 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Set 'TRUE' if the filter can execute query.
+        /// Set 'TRUE' if the filter can execute query using DataService.
         /// </summary>
         public bool CanSearch
         {
@@ -78,7 +80,8 @@ namespace SpeedyMVVM.DataAccess
                 if (_DataService != value)
                 {
                     _DataService = value;
-                    Filter.DataService = value;
+                    if(_CanSearch)
+                        Filter.DataService = value;
                 }
             }
         }
@@ -134,7 +137,7 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Selected entity from 'Items' collection.
         /// </summary>
-        public virtual T SelectedItem
+        public T SelectedItem
         {
             get { return _SelectedItem; }
             set
@@ -144,6 +147,8 @@ namespace SpeedyMVVM.DataAccess
                     _SelectedItem = value;
                     RemoveCommand.IsEnabled = true;
                     PopOutCommand.IsEnabled = true;
+                    RemoveSelectedItemCommand.Action.IsEnabled = true;
+                    PopOutSelectedItemCommand.Action.IsEnabled = true;
                     OnPropertyChanged(nameof(SelectedItem));
                 }
             }
@@ -154,7 +159,12 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public ObservableCollection<ContextMenuItemModel> ContextMenu
         {
-            get { return (_ContextMenu == null) ? _ContextMenu = GetContextMenu() : _ContextMenu; }
+            get
+            {
+                if (_ContextMenu == null)
+                    SetContextMenu();
+                return _ContextMenu;
+            }
             set
             {
                 if (_ContextMenu != value)
@@ -273,6 +283,50 @@ namespace SpeedyMVVM.DataAccess
             }
             set { _SaveCommand = value; }
         }
+
+        /// <summary>
+        /// Command to remove the Selected Item from Items.
+        /// </summary>
+        public ContextMenuItemModel RemoveSelectedItemCommand
+        {
+            get
+            {
+                return (_RemoveSelectedItemCommand == null) ? 
+                    _RemoveSelectedItemCommand = new ContextMenuItemModel(
+                        new RelayCommand(async () => await RemoveCommandExecute(SelectedItem)), "Remove Selected Item") 
+                    : _RemoveSelectedItemCommand;
+            }
+            set
+            {
+                if (_RemoveSelectedItemCommand != value)
+                {
+                    _RemoveSelectedItemCommand = value;
+                    OnPropertyChanged(nameof(RemoveSelectedItemCommand));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Command to pop-out Selected Item in a new pop-up.
+        /// </summary>
+        public ContextMenuItemModel PopOutSelectedItemCommand
+        {
+            get
+            {
+                return (_PopOutSelectedItemCommand == null) ?
+                    _PopOutSelectedItemCommand = new ContextMenuItemModel(
+                        new RelayCommand(async () => await PopOutCommandExecute(SelectedItem)), "Edit Selected Item")
+                    : _PopOutSelectedItemCommand;
+            }
+            set
+            {
+                if (_PopOutSelectedItemCommand != value)
+                {
+                    _PopOutSelectedItemCommand = value;
+                    OnPropertyChanged(nameof(PopOutSelectedItemCommand));
+                }
+            }
+        }
         #endregion
 
         #region Commands Executions
@@ -357,12 +411,12 @@ namespace SpeedyMVVM.DataAccess
             {
                 if (entity != null)
                 {
-                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name.Split('_')[0], "", entity);
+                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", entity);
                     return (bool)await DialogService.ShowEntityDialogBox(vm);
                 }                  
                 else
                 {
-                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name.Split('_')[0], "", this);
+                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", this);
                     return (bool)await DialogService.ShowCRUDDialogBox(vm);
                 }
             }
@@ -382,18 +436,24 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Show a Dialog Box to pick entities from a repository service.
+        /// Show a Dialog Box to pick entities from a repository service and add them to Items.
         /// </summary>
         /// <returns>Return TRUE in case of operation successful</returns>
         public virtual async Task<bool> PickEntitiesCommandExecute(Expression<Func<T,bool>> expression)
         {
-            if (!CanSearch) return false;
             if (ServiceContainer != null && DialogService != null)
             {
-                var vm = new CrudDialogViewModel<T>(ServiceContainer, string.Format("{0} - Picker", typeof(T).Name.Split('_')[0]), "");
+                var vm = new CrudDialogViewModel<T>(ServiceContainer, string.Format("{0} - Picker", typeof(T).Name), "");
                 if(expression!=null)
                     vm.ViewModel.Filter.HiddenExpression = expression;
-                return (bool)await DialogService.ShowEntityPickerBox(vm);
+                if (await DialogService.ShowEntityPickerBox(vm) == true)
+                {
+                    foreach (T entity in vm.ViewModel.SelectedItems)
+                        Items.Add(entity);
+                    return true;
+                }
+                else
+                    return false;
             }
             return false;
         }
@@ -422,23 +482,54 @@ namespace SpeedyMVVM.DataAccess
         public override void Initialize(ServiceLocator locator)
         {
             ServiceContainer = locator;
-            DataService = locator.GetService<IRepositoryService<T>>();
+            if (locator != null)
+                DataService = locator.GetService<IRepositoryService<T>>();
             _CanSearch = true;
             IsInitialized = true;
         }
 
         /// <summary>
-        /// Get a collection of ContextMenuItemModel containing Add, Remove, Edit and Picker entity.
+        /// Initialize a new instance of ContextMenu containing Add, Remove, Edit and Picker entity commands.
         /// </summary>
-        /// <returns>New collection of ContextMenuItemModel.</returns>
-        public virtual ObservableCollection<ContextMenuItemModel> GetContextMenu()
+        protected virtual void SetContextMenu()
         {
-            var collection = new ObservableCollection<ContextMenuItemModel>();
-            collection.Add(new ContextMenuItemModel(new RelayCommand(async()=> await AddCommandExecute(null)), string.Format("Add new {0}", typeof(T).Name.Split('_')[0])));
-            collection.Add(new ContextMenuItemModel(new RelayCommand(async () => await RemoveCommandExecute(SelectedItem)), "Remove Selected Item"));
-            collection.Add(new ContextMenuItemModel(new RelayCommand(async () => await PopOutCommandExecute(SelectedItem)), "Edit Selected Item"));
-            collection.Add(new ContextMenuItemModel(PickEntitiesCommand, "Search Items"));
-            return collection;
+            if(_ContextMenu==null)
+                _ContextMenu = new ObservableCollection<ContextMenuItemModel>();
+            _ContextMenu.Add(new ContextMenuItemModel(new RelayCommand(async () => await AddCommandExecute(null), true), "Add new"));// string.Format("Add new {0}", typeof(T).Name)));
+            _ContextMenu.Add(RemoveSelectedItemCommand);
+            _ContextMenu.Add(PopOutSelectedItemCommand);
+            _ContextMenu.Add(new ContextMenuItemModel(PickEntitiesCommand, "Search Items"));
+        }
+
+        /// <summary>
+        /// Executed when a property of the item 'Filter' change the value.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Filter_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "Items":
+                    OnPropertyChanged(nameof(this.Items));
+                    Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(Items));
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Executed when a property change the value.
+        /// </summary>
+        /// <param name="propertyName">Name of the property that changed value.</param>
+        protected override void OnPropertyChanged(string propertyName)
+        {
+            switch (propertyName)
+            {
+                case nameof(Filter):
+                    Filter.PropertyChanged += Filter_PropertyChanged;
+                    break;
+            }
+            base.OnPropertyChanged(propertyName);
         }
         #endregion
 
@@ -448,16 +539,16 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public CrudViewModel()
         {
-            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
+            Filter.PropertyChanged += Filter_PropertyChanged;
         }
-
+        
         /// <summary>
         /// Create a new instance of CRUDViewModel.
         /// </summary>
         /// <param name="canSearch">Enable the view model to execute query.</param>
         public CrudViewModel(bool canSearch)
         {
-            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
+            Filter.PropertyChanged += Filter_PropertyChanged;
             _CanSearch = canSearch;
         }
 
@@ -467,7 +558,7 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator with the current services</param>
         public CrudViewModel(ServiceLocator locator)
         {
-            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
+            Filter.PropertyChanged += Filter_PropertyChanged;
             Initialize(locator);
         }
 
@@ -478,8 +569,8 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="canSearch">Enable the view model to execute query.</param>
         public CrudViewModel(ServiceLocator locator, bool canSearch)
         {
-            Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(this.Items));
             Initialize(locator);
+            Filter.PropertyChanged += Filter_PropertyChanged;
             _CanSearch = canSearch;
         }
         #endregion
