@@ -109,7 +109,7 @@ namespace SpeedyMVVM.Expressions
                 case "Int32?":
                     int v;
                     int.TryParse(filter.Value.ToString(), out v);
-                    constant = Expression.Convert(Expression.Constant(filter.Value), prop.PropertyType);
+                    constant = Expression.Convert(Expression.Constant(v), prop.PropertyType);
                     break;
                 case "DateTime":
                     DateTime dt;

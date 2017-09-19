@@ -78,7 +78,12 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public ObservableCollection<T> Items
         {
-            get { return (_Items == null) ? _Items = new ObservableCollection<T>() : _Items; }
+            get
+            {
+                if (_Items == null)
+                    _Items = new ObservableCollection<T>();
+                return _Items;
+            }
             set
             {
                 if (_Items != value)

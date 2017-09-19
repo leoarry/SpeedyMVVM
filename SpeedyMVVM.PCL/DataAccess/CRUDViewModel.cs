@@ -7,6 +7,7 @@ using SpeedyMVVM.Navigation.Models;
 using System.Linq.Expressions;
 using System.Collections;
 using System.Linq;
+using System.ComponentModel;
 
 namespace SpeedyMVVM.DataAccess
 {
@@ -17,14 +18,19 @@ namespace SpeedyMVVM.DataAccess
     public class CrudViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Fields
+        private bool _CanSave;
+        private bool _CanAdd;
         private bool _CanSearch;
+        private bool _DeleteOnCascade;
         private RelayCommand<T> _AddCommand;
         private RelayCommand<object> _AddSelectionCommand;
         private RelayCommand<T> _RemoveCommand;
         private RelayCommand<T> _PopOutCommand;
         private RelayCommand _FilterCommand;
-        private RelayCommand _PickEntitiesCommand;
         private RelayCommand _SaveCommand;
+        private ContextMenuItemModel _PickEntitiesCommand;
+        private ContextMenuItemModel _RemoveSelectedItemCommand;
+        private ContextMenuItemModel _PopOutSelectedItemCommand;
         private IRepositoryService<T> _DataService;
         private IEntityDialogBoxService _DialogService;
         private EntityFilterViewModel<T> _Filter;
@@ -32,8 +38,6 @@ namespace SpeedyMVVM.DataAccess
         private T _SelectedItem;
         private ObservableCollection<ContextMenuItemModel> _ContextMenu;
         private Expression<Func<T, bool>> _PickEntitiesExpression;
-        private ContextMenuItemModel _RemoveSelectedItemCommand;
-        private ContextMenuItemModel _PopOutSelectedItemCommand;
         #endregion
 
         #region Properties
@@ -54,7 +58,39 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Set 'TRUE' if the filter can execute query using DataService.
+        /// Set 'TRUE' if the CrudViewModel can persist entities throw DataService when available (Default=TRUE).
+        /// </summary>
+        public bool CanSave
+        {
+            get { return _CanSave; }
+            set
+            {
+                if (_CanSave != value)
+                {
+                    _CanSave = value;
+                    OnPropertyChanged(nameof(CanSave));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set 'TRUE' if the CrudViewModel can add entities throw DataService when available (Default=TRUE).
+        /// </summary>
+        public bool CanAdd
+        {
+            get { return _CanAdd; }
+            set
+            {
+                if (_CanAdd != value)
+                {
+                    _CanAdd = value;
+                    OnPropertyChanged(nameof(CanAdd));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set 'TRUE' if the filter can execute query using DataService (Default=TRUE).
         /// </summary>
         public bool CanSearch
         {
@@ -64,25 +100,45 @@ namespace SpeedyMVVM.DataAccess
                 if (_CanSearch != value)
                 {
                     _CanSearch = value;
+                    if (_CanSearch)
+                        Filter.DataService = DataService;
                     OnPropertyChanged(nameof(CanSearch));
                 }
             }
         }
-        
+
+        /// <summary>
+        /// If 'TRUE' will remove the entity from the DataService (Default=TRUE).
+        /// </summary>
+        public bool DeleteOnCascade
+        {
+            get { return _DeleteOnCascade; }
+            set
+            {
+                if (_DeleteOnCascade != value)
+                {
+                    _DeleteOnCascade = value;
+                    OnPropertyChanged(nameof(DeleteOnCascade));
+                }
+            }
+        }
+
         /// <summary>
         /// Repository Service where get data from.
         /// </summary>
         public IRepositoryService<T> DataService
         {
-            get { return _DataService; }
+            get
+            {
+                if (ServiceContainer == null)
+                    throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize DataService, can't inject services! Parameter is null.");
+                return (_DataService == null) ? _DataService = ServiceContainer.GetService<IRepositoryService<T>>() : _DataService;
+            }
             set
             {
-                if (_DataService != value)
-                {
-                    _DataService = value;
-                    if(_CanSearch)
-                        Filter.DataService = value;
-                }
+                _DataService = value;
+                if (_CanSearch)
+                    Filter.DataService = value;
             }
         }
         
@@ -93,16 +149,11 @@ namespace SpeedyMVVM.DataAccess
         {
             get
             {
+                if (ServiceContainer == null)
+                    throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize DialogService, can't inject services! Parameter is null.");
                 return (_DialogService == null) ? _DialogService = ServiceContainer.GetService<IEntityDialogBoxService>() : _DialogService;
             }
-            set
-            {
-                if (_DialogService != value)
-                {
-                    _DialogService = value;
-                    OnPropertyChanged(nameof(DialogService));
-                }
-            }
+            set { _DialogService = value; }
         }
 
         /// <summary>
@@ -145,10 +196,20 @@ namespace SpeedyMVVM.DataAccess
                 if (!object.Equals(_SelectedItem,value))
                 {
                     _SelectedItem = value;
-                    RemoveCommand.IsEnabled = true;
-                    PopOutCommand.IsEnabled = true;
-                    RemoveSelectedItemCommand.Action.IsEnabled = true;
-                    PopOutSelectedItemCommand.Action.IsEnabled = true;
+                    if (value != null)
+                    {
+                        RemoveCommand.IsEnabled = true;
+                        PopOutCommand.IsEnabled = true;
+                        RemoveSelectedItemCommand.Action.IsEnabled = true;
+                        PopOutSelectedItemCommand.Action.IsEnabled = true;
+                    }
+                    else
+                    {
+                        RemoveCommand.IsEnabled = false;
+                        PopOutCommand.IsEnabled = false;
+                        RemoveSelectedItemCommand.Action.IsEnabled = false;
+                        PopOutSelectedItemCommand.Action.IsEnabled = false;
+                    }
                     OnPropertyChanged(nameof(SelectedItem));
                 }
             }
@@ -257,20 +318,7 @@ namespace SpeedyMVVM.DataAccess
             }
             set { _FilterCommand = value; }
         }
-
-        /// <summary>
-        /// Command to pick entities from a repository service and add them to 'Items'.
-        /// </summary>
-        public RelayCommand PickEntitiesCommand
-        {
-            get
-            {
-                return (_PickEntitiesCommand == null) ?
-                    _PickEntitiesCommand = new RelayCommand(async () => await PickEntitiesCommandExecute(PickEntitiesExpression), true) : _PickEntitiesCommand;
-            }
-            set { _PickEntitiesCommand = value; }
-        }
-
+        
         /// <summary>
         /// Command to save changes.
         /// </summary>
@@ -282,6 +330,22 @@ namespace SpeedyMVVM.DataAccess
                     _SaveCommand = new RelayCommand(async () => await SaveCommandExecute(), true) : _SaveCommand;
             }
             set { _SaveCommand = value; }
+        }
+
+        /// <summary>
+        /// Command to pick entities from a repository service and add them to 'Items'.
+        /// </summary>
+        public ContextMenuItemModel PickEntitiesCommand
+        {
+            get
+            {
+                return (_PickEntitiesCommand == null) ?
+                    _PickEntitiesCommand = new ContextMenuItemModel(
+                        new RelayCommand(async () => await PickEntitiesCommandExecute(PickEntitiesExpression), true), 
+                        "Search Items") 
+                   : _PickEntitiesCommand;
+            }
+            set { _PickEntitiesCommand = value; }
         }
 
         /// <summary>
@@ -339,9 +403,9 @@ namespace SpeedyMVVM.DataAccess
         {
             if (entity == null) { entity = Activator.CreateInstance<T>(); }
             entity.EntityStatus = EntityStatusEnum.Added;
-            if(DataService!=null)
-                entity = await DataService.AddEntityAsync(entity);
             Items.Add(entity);
+            if (DataService != null && CanAdd)
+                entity = await DataService.AddEntityAsync(entity);
             return true;
         }
 
@@ -373,7 +437,7 @@ namespace SpeedyMVVM.DataAccess
             if (entity != null)
             {
                 entity.EntityStatus = EntityStatusEnum.Deleted;
-                if (DataService != null)
+                if (DeleteOnCascade && DataService != null)
                     await DataService.RemoveEntityAsync(entity);
                 Items.Remove(entity);
                 return true;
@@ -383,7 +447,7 @@ namespace SpeedyMVVM.DataAccess
                 foreach(var e in _SelectedItems)
                 {
                     e.EntityStatus = EntityStatusEnum.Deleted;
-                    if (DataService != null)
+                    if (DeleteOnCascade && DataService != null)
                         await DataService.RemoveEntityAsync(e);
                     Items.Remove(e);
                 }
@@ -392,7 +456,7 @@ namespace SpeedyMVVM.DataAccess
             }else if (SelectedItem != null)
             {
                 SelectedItem.EntityStatus = EntityStatusEnum.Deleted;
-                if (DataService != null)
+                if (DeleteOnCascade && DataService != null)
                     await DataService.RemoveEntityAsync(SelectedItem);
 
                 Items.Remove(SelectedItem);
@@ -411,7 +475,8 @@ namespace SpeedyMVVM.DataAccess
             {
                 if (entity != null)
                 {
-                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", entity);
+                    SelectedItem = entity;
+                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", this);
                     return (bool)await DialogService.ShowEntityDialogBox(vm);
                 }                  
                 else
@@ -429,10 +494,7 @@ namespace SpeedyMVVM.DataAccess
         /// <returns>Return TRUE in case of operation successful</returns>
         public virtual async Task<bool> FilterCommandExecute()
         {
-            if (CanSearch)
-                return await Filter.FilterCommandExecute();
-            else
-                return false;
+            return await Filter.FilterCommandExecute();
         }
 
         /// <summary>
@@ -444,8 +506,11 @@ namespace SpeedyMVVM.DataAccess
             if (ServiceContainer != null && DialogService != null)
             {
                 var vm = new CrudDialogViewModel<T>(ServiceContainer, string.Format("{0} - Picker", typeof(T).Name), "");
-                if(expression!=null)
+                if (expression != null)
+                {
                     vm.ViewModel.Filter.HiddenExpression = expression;
+                    await vm.ViewModel.FilterCommandExecute();
+                }
                 if (await DialogService.ShowEntityPickerBox(vm) == true)
                 {
                     foreach (T entity in vm.ViewModel.SelectedItems)
@@ -464,13 +529,20 @@ namespace SpeedyMVVM.DataAccess
         /// <returns>Return TRUE in case of operation successful</returns>
         public virtual async Task<bool> SaveCommandExecute()
         {
-            int? result = null;
-            if (DataService != null)
-                result = await DataService.SaveChangesAsync();
-            if (result == 0)
-                return true;
-            else
-                return false;
+            if (DataService != null && CanSave)
+            {
+                if (await DataService.SaveChangesAsync() == 0)
+                {
+                    foreach (var i in Items)
+                        i.EntityStatus = EntityStatusEnum.Unchanged;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else { return true; }
         }
         #endregion
 
@@ -481,10 +553,11 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator with the current services</param>
         public override void Initialize(ServiceLocator locator)
         {
+            if (locator == null)
+                throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize CrudViewModel, can't inject services! Parameter is null.");
             ServiceContainer = locator;
-            if (locator != null)
-                DataService = locator.GetService<IRepositoryService<T>>();
-            _CanSearch = true;
+            DataService = locator.GetService<IRepositoryService<T>>();
+            DialogService = locator.GetService<IEntityDialogBoxService>();
             IsInitialized = true;
         }
 
@@ -498,7 +571,7 @@ namespace SpeedyMVVM.DataAccess
             _ContextMenu.Add(new ContextMenuItemModel(new RelayCommand(async () => await AddCommandExecute(null), true), "Add new"));// string.Format("Add new {0}", typeof(T).Name)));
             _ContextMenu.Add(RemoveSelectedItemCommand);
             _ContextMenu.Add(PopOutSelectedItemCommand);
-            _ContextMenu.Add(new ContextMenuItemModel(PickEntitiesCommand, "Search Items"));
+            _ContextMenu.Add(PickEntitiesCommand);
         }
 
         /// <summary>
@@ -506,11 +579,11 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Filter_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void Filter_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
-                case "Items":
+                case nameof(Items):
                     OnPropertyChanged(nameof(this.Items));
                     Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(Items));
                     break;
@@ -540,6 +613,10 @@ namespace SpeedyMVVM.DataAccess
         public CrudViewModel()
         {
             Filter.PropertyChanged += Filter_PropertyChanged;
+            _CanSearch = true;
+            _DeleteOnCascade = true;
+            _CanAdd = true;
+            _CanSave = true;
         }
         
         /// <summary>
@@ -550,6 +627,9 @@ namespace SpeedyMVVM.DataAccess
         {
             Filter.PropertyChanged += Filter_PropertyChanged;
             _CanSearch = canSearch;
+            _DeleteOnCascade = true;
+            _CanAdd = true;
+            _CanSave = true;
         }
 
         /// <summary>
@@ -559,6 +639,10 @@ namespace SpeedyMVVM.DataAccess
         public CrudViewModel(ServiceLocator locator)
         {
             Filter.PropertyChanged += Filter_PropertyChanged;
+            _CanSearch = true;
+            _DeleteOnCascade = true;
+            _CanAdd = true;
+            _CanSave = true;
             Initialize(locator);
         }
 
@@ -571,6 +655,9 @@ namespace SpeedyMVVM.DataAccess
         {
             Initialize(locator);
             Filter.PropertyChanged += Filter_PropertyChanged;
+            _DeleteOnCascade = true;
+            _CanAdd = true;
+            _CanSave = true;
             _CanSearch = canSearch;
         }
         #endregion

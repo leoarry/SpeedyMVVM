@@ -180,7 +180,7 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public CrudDialogViewModel()
         {
-            _ViewModel = new CrudViewModel<T>();
+            _ViewModel = new CrudViewModel<T>(true);
         }
 
         /// <summary>
@@ -189,7 +189,7 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator containing services</param>
         public CrudDialogViewModel(ServiceLocator locator)
         {
-            _ViewModel = new CrudViewModel<T>();
+            _ViewModel = new CrudViewModel<T>(true);
             Initialize(locator);
         }
 
@@ -203,7 +203,7 @@ namespace SpeedyMVVM.DataAccess
         {
             _Title = title;
             _IconPath = iconPath;
-            _ViewModel = new CrudViewModel<T>();
+            _ViewModel = new CrudViewModel<T>(true);
             Initialize(locator);
         }
 
@@ -218,7 +218,7 @@ namespace SpeedyMVVM.DataAccess
         {
             _Title = title;
             _IconPath = iconPath;
-            _ViewModel = new CrudViewModel<T>();
+            _ViewModel = new CrudViewModel<T>(true);
             _ViewModel.SelectedItem = selection;
             Initialize(locator);
         }
