@@ -1,66 +1,23 @@
 ﻿using SpeedyMVVM.Utilities;
+using System;
 
-namespace SpeedyMVVM.Navigation.Models
+namespace SpeedyMVVM.Navigation
 {
     /// <summary>
     /// Provide a Context Menu Item.
     /// </summary>
-    public class ContextMenuItemModel : ObservableObject
+    public class ContextMenuItemModel : RelayCommand
     {
         #region Fields
-        private RelayCommand _Action;
         private string _Name;
         private string _Icon;
         #endregion
 
         #region Property
         /// <summary>
-        /// Action to perform.
-        /// </summary>
-        public RelayCommand Action
-        {
-            get { return _Action; }
-            set
-            {
-                if (_Action != value)
-                {
-                    _Action = value;
-                    OnPropertyChanged(nameof(Action));
-                }
-            }
-        }
-
-        /// <summary>
         /// Name of the control.
         /// </summary>
-        public string Name
-        {
-            get { return _Name; }
-            set
-            {
-                if (_Name != value)
-                {
-                    _Name = value;
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Icon path for the control.
-        /// </summary>
-        public string Icon
-        {
-            get { return _Icon; }
-            set
-            {
-                if (_Icon != value)
-                {
-                    _Icon = value;
-                    OnPropertyChanged(nameof(Icon));
-                }
-            }
-        }
+        public string Name { get; set; }
         #endregion
 
         #region Costructors
@@ -68,19 +25,15 @@ namespace SpeedyMVVM.Navigation.Models
         /// Initialize a new ContextMenuItemModel with the Action 'cmd' passed as parameter.
         /// </summary>
         /// <param name="cmd">Action to perform.</param>
-        public ContextMenuItemModel(RelayCommand cmd)
-        {
-            _Action = cmd;
-        }
+        public ContextMenuItemModel(Action cmd) : base(cmd) { }
 
         /// <summary>
         /// Initialize a new ContextMenuItemModel with the Action 'cmd' and the Name 'text' passed as parameter.
         /// </summary>
         /// <param name="cmd">Action to perform.</param>
         /// <param name="text">Name for the control.</param>
-        public ContextMenuItemModel(RelayCommand cmd, string text)
+        public ContextMenuItemModel(Action cmd, string text):base(cmd)
         {
-            _Action = cmd;
             _Name = text;
         }
 
@@ -90,9 +43,8 @@ namespace SpeedyMVVM.Navigation.Models
         /// <param name="cmd">Action to perform.</param>
         /// <param name="text">Name for the control.</param>
         /// <param name="image">Icon for the control.</param>
-        public ContextMenuItemModel(RelayCommand cmd, string text, string image)
+        public ContextMenuItemModel(Action cmd, string text, string image):base(cmd)
         {
-            _Action = cmd;
             _Name = text;
             _Icon = image;
         }

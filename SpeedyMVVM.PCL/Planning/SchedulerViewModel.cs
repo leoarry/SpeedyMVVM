@@ -1,4 +1,4 @@
-﻿using SpeedyMVVM.Navigation.Interfaces;
+﻿using SpeedyMVVM.Navigation;
 using SpeedyMVVM.Utilities;
 using System;
 using System.Collections.Generic;
@@ -146,7 +146,7 @@ namespace SpeedyMVVM.Planning
         {
             get
             {
-                return (_ComputePlanCommand == null) ? _ComputePlanCommand = new RelayCommand(async()=> await ComputePlanCommandExecute(), true) : _ComputePlanCommand;
+                return _ComputePlanCommand ?? (_ComputePlanCommand = new RelayCommand(async () => await ComputePlanCommandExecute(), true));
             }
             set
             {
@@ -163,8 +163,7 @@ namespace SpeedyMVVM.Planning
         /// </summary>
         public RelayCommand<PlannedDayModel<T>> SelectPlanCommand
         {
-            get { return (_SelectPlanCommand == null) ? 
-                    _SelectPlanCommand = new RelayCommand<PlannedDayModel<T>>(SelectPlanCommandExecute, true) : _SelectPlanCommand; }
+            get { return _SelectPlanCommand ?? (_SelectPlanCommand = new RelayCommand<PlannedDayModel<T>>(SelectPlanCommandExecute, true)); }
             set { _SelectPlanCommand = value; }
         }
         #endregion
@@ -233,13 +232,12 @@ namespace SpeedyMVVM.Planning
         /// Initialize the current instance of SchedulerViewModel.
         /// </summary>
         /// <param name="service">Service container with current services.</param>
-        public override void Initialize(ServiceLocator service)
+        public override void InjectServices(ServiceLocator service)
         {
             this.ServiceContainer = service;
             var date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
             _StartingDate = date;
             _EndingDate = date.AddDays(6);
-            IsInitialized = true;
         }
         #endregion
 
@@ -249,7 +247,7 @@ namespace SpeedyMVVM.Planning
         }
         public SchedulerViewModel(ServiceLocator locator)
         {
-            Initialize(locator);
+            InjectServices(locator);
         }
         #endregion
     }

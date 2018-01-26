@@ -1,16 +1,18 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
-using SpeedyMVVM.Navigation.Interfaces;
+﻿using SpeedyMVVM.Navigation;
 using SpeedyMVVM.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 
 namespace SpeedyMVVM.DataAccess
 {
     /// <summary>
-    /// View model to pop-up a CRUDViewModel or an entity in a new dialog box.
+    /// View model to pop-up a CRUDViewModel in a new dialog box.
     /// </summary>
     /// <typeparam name="T">Type of entity.</typeparam>
-    public class CrudDialogViewModel<T> : ViewModelBase, IDialogBox where T : EntityBase
+    public class CrudDialogViewModel<T> : ViewModelBase, ICrudViewModel<T>, IDialogBox where T : EntityBase
     {
 
         #region Fields
@@ -18,7 +20,9 @@ namespace SpeedyMVVM.DataAccess
         private string _Title;
         private bool _IsVisible;
         private bool? _DialogResult;
-        private CrudViewModel<T> _ViewModel;
+        private RelayCommand _ConfirmCommand;
+        private RelayCommand _DeclineCommand;
+        private ICrudViewModel<T> _viewModel;
         #endregion
 
         #region IDialogBox Implementation
@@ -28,14 +32,7 @@ namespace SpeedyMVVM.DataAccess
         public string IconPath
         {
             get { return _IconPath; }
-            set
-            {
-                if (_IconPath != value)
-                {
-                    _IconPath = value;
-                    OnPropertyChanged(nameof(IconPath));
-                }
-            }
+            set { SetProperty(ref _IconPath, value); }
         }
 
         /// <summary>
@@ -44,14 +41,7 @@ namespace SpeedyMVVM.DataAccess
         public string Title
         {
             get { return _Title; }
-            set
-            {
-                if (_Title != value)
-                {
-                    _Title = value;
-                    OnPropertyChanged(nameof(Title));
-                }
-            }
+            set { SetProperty(ref _Title, value); }
         }
 
         /// <summary>
@@ -60,14 +50,7 @@ namespace SpeedyMVVM.DataAccess
         public bool IsVisible
         {
             get { return _IsVisible; }
-            set
-            {
-                if (_IsVisible != value)
-                {
-                    _IsVisible = value;
-                    OnPropertyChanged(nameof(IsVisible));
-                }
-            }
+            set { SetProperty(ref _IsVisible, value); }
         }
 
         /// <summary>
@@ -78,119 +61,169 @@ namespace SpeedyMVVM.DataAccess
             get { return _DialogResult; }
             set
             {
-                if (_DialogResult != value)
-                {
-                    _DialogResult = value;
-                    OnPropertyChanged(nameof(DialogResult));
-                }
-                DialogResultChanged?.Invoke(this, value);
+                SetProperty(ref _DialogResult, value);
+                WeakEventManager.Default.RaiseEvent(this, value, nameof(DialogResultChanged));
             }
         }
 
         /// <summary>
         /// Raised when 'DialogResult' changed.
         /// </summary>
-        public event EventHandler<bool?> DialogResultChanged;
+        public event EventHandler<bool?> DialogResultChanged
+        {
+            add
+            {
+                WeakEventManager.Default.AddEventHandler(this, nameof(DialogResultChanged), value);
+            }
+            remove
+            {
+                WeakEventManager.Default.RemoveEventHandler(this, nameof(DialogResultChanged), value);
+            }
+        }
         #endregion
-        
-        #region Properties
-        /// <summary>
-        /// CRUD View Model to expose in the pop-up.
-        /// </summary>
-        public CrudViewModel<T> ViewModel
+
+        #region ICrudViewModel Implementation
+        public IRepositoryService<T> DataService
         {
             get
             {
-                return (_ViewModel == null) ? _ViewModel = new CrudViewModel<T>() : _ViewModel;
+                return _viewModel.DataService;
             }
+
             set
             {
-                if (_ViewModel != value)
-                {
-                    _ViewModel = value;
-                    OnPropertyChanged(nameof(ViewModel));
-                }
+                _viewModel.DataService = value;
+            }
+        }
+
+        public RelayCommand<T> AddCommand
+        {
+            get
+            {
+                return _viewModel.AddCommand;
+            }
+        }
+
+        public RelayCommand<T> RemoveCommand
+        {
+            get
+            {
+                return _viewModel.RemoveCommand;
+            }
+        }
+
+        public RelayCommand<T> SaveCommand
+        {
+            get
+            {
+                return _viewModel.SaveCommand;
+            }
+        }
+
+        public RelayCommand<Expression<Func<T, bool>>> SearchCommand
+        {
+            get
+            {
+                return _viewModel.SearchCommand;
+            }
+        }
+
+        public T SelectedItem
+        {
+            get
+            {
+                return _viewModel.SelectedItem;
+            }
+
+            set
+            {
+                _viewModel.SelectedItem = value;
+            }
+        }
+
+        public ObservableCollection<T> Items
+        {
+            get
+            {
+                return _viewModel.Items;
+            }
+
+            set
+            {
+                _viewModel.Items = value;
+            }
+        }
+
+        public ObservableCollection<T> SelectedItems
+        {
+            get
+            {
+                return _viewModel.SelectedItems;
+            }
+
+            set
+            {
+                _viewModel.SelectedItems = value;
             }
         }
         #endregion
 
         #region Commands
         /// <summary>
-        /// Command to persist changes using 'DataService'.
-        /// </summary>
-        public RelayCommand SaveCommand
-        {
-            get { return new RelayCommand(async () => DialogResult = await ViewModel.SaveCommandExecute(), true); }
-        }
-
-        /// <summary>
-        /// Command to populate 'SelectedItems' form parameter (IList).
-        /// </summary>
-        public RelayCommand<object> AddSelectionCommand
-        {
-            get { return new RelayCommand<object>(async (param) => DialogResult = await ViewModel.AddSelectionCommandExecute(param), true); }
-        }
-
-        /// <summary>
-        /// Command to execute the query.
-        /// </summary>
-        public RelayCommand SearchCommand
-        {
-            get { return ViewModel.FilterCommand; }
-        }
-
-        /// <summary>
         /// Confirmation command (DialogResult = true).
         /// </summary>
-        public RelayCommand ConfirmCommand { get { return new RelayCommand(() => DialogResult = true, true); } }
+        public RelayCommand ConfirmCommand
+        {
+            get { return _ConfirmCommand ?? (_ConfirmCommand = new RelayCommand(() => DialogResult = true, true)); }
+        }
 
         /// <summary>
         /// Declination command (DialogResult = false).
         /// </summary>
-        public RelayCommand DeclineCommand { get { return new RelayCommand(DeclineCommandExecute, true); } }
-        #endregion
-
-        #region Methods
-        /// <summary>
-        /// Void executed by Decline Command (DialogResult = false).
-        /// </summary>
-        protected virtual void DeclineCommandExecute() { DialogResult = false; }
-
-        /// <summary>
-        /// Void executed by Confirm Command (DialogResult = true).
-        /// </summary>
-        protected virtual void ConfirmCommandExecute() { DialogResult = true; }
-
-        /// <summary>
-        /// Initialize EntityEditor using 'locator'.
-        /// </summary>
-        /// <param name="locator"></param>
-        public override void Initialize(ServiceLocator locator)
+        public RelayCommand DeclineCommand
         {
-            this.ServiceContainer = locator;
-            if (!_ViewModel.IsInitialized)
-                _ViewModel.Initialize(locator);
-            IsInitialized = true;
-        }
+            get { return _DeclineCommand ?? (_DeclineCommand = new RelayCommand(() => DialogResult = false, true)); }
+        }        
         #endregion
 
         #region Constructors
         /// <summary>
         /// Create a new instance of EntityEditor.
         /// </summary>
-        public CrudDialogViewModel()
+        public CrudDialogViewModel(ICrudViewModel<T> viewModel = null)
         {
-            _ViewModel = new CrudViewModel<T>(true);
+            if (viewModel == null)
+                _viewModel = new CrudViewModel<T>();
+            else
+                _viewModel = viewModel;
+        }
+
+        /// <summary>
+        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
+        /// </summary>
+        /// <param name="title">Title of the dialog box.</param>
+        /// <param name="iconPath">Icon of the dialog box.</param>
+        public CrudDialogViewModel(string title, string iconPath, ICrudViewModel<T> viewModel = null)
+        {
+            _Title = title;
+            _IconPath = iconPath;
+            if (viewModel == null)
+                _viewModel = new CrudViewModel<T>();
+            else
+                _viewModel = viewModel;
         }
 
         /// <summary>
         /// Create a new instance of EntityEditor and initialize it using 'locator'. 
         /// </summary>
         /// <param name="locator">Service Locator containing services</param>
-        public CrudDialogViewModel(ServiceLocator locator)
+        public CrudDialogViewModel(ServiceLocator locator, ICrudViewModel<T> viewModel = null)
         {
-            _ViewModel = new CrudViewModel<T>(true);
-            Initialize(locator);
+            InjectServices(locator);
+            if (viewModel == null)
+                _viewModel = new CrudViewModel<T>();
+            else
+                _viewModel = viewModel;
         }
 
         /// <summary>
@@ -199,12 +232,15 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator containing services.</param>
         /// <param name="title">Title of the dialog box.</param>
         /// <param name="iconPath">Icon of the dialog box.</param>
-        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath)
+        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, ICrudViewModel<T> viewModel = null)
         {
             _Title = title;
             _IconPath = iconPath;
-            _ViewModel = new CrudViewModel<T>(true);
-            Initialize(locator);
+            InjectServices(locator);
+            if (viewModel == null)
+                _viewModel = new CrudViewModel<T>();
+            else
+                _viewModel = viewModel;
         }
 
         /// <summary>
@@ -213,44 +249,25 @@ namespace SpeedyMVVM.DataAccess
         /// <param name="locator">Service Locator containing services.</param>
         /// <param name="title">Title of the dialog box.</param>
         /// <param name="iconPath">Icon of the dialog box.</param>
-        /// <param name="selection">Entity to pop-up.</param>
-        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, T selection)
+        /// <param name="items">Entities collection to pop-up.</param>
+        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, IEnumerable<T> items, ICrudViewModel<T> viewModel = null)
         {
             _Title = title;
             _IconPath = iconPath;
-            _ViewModel = new CrudViewModel<T>(true);
-            _ViewModel.SelectedItem = selection;
-            Initialize(locator);
+            Items = items.ToObservableCollection();
+            InjectServices(locator);
+            if (viewModel == null)
+                _viewModel = new CrudViewModel<T>();
+            else
+                _viewModel = viewModel;
         }
 
-        /// <summary>
-        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
-        /// </summary>
-        /// <param name="locator">Service Locator containing services.</param>
-        /// <param name="title">Title of the dialog box.</param>
-        /// <param name="iconPath">Icon of the dialog box.</param>
-        /// <param name="viewModel">CRUD View Model to pop-up.</param>
-        public CrudDialogViewModel(ServiceLocator locator, string title, string iconPath, CrudViewModel<T> viewModel)
+        ~CrudDialogViewModel()
         {
-            _Title = title;
-            _IconPath = iconPath;
-            _ViewModel = viewModel;
-            Initialize(locator);
-        }
-
-        /// <summary>
-        /// Create a new instance of EntityEditor and initialize it using 'locator'. 
-        /// </summary>
-        /// <param name="title">Title of the dialog box.</param>
-        /// <param name="iconPath">Icon of the dialog box.</param>
-        /// <param name="viewModel">CRUD View Model to pop-up.</param>
-        public CrudDialogViewModel(string title, string iconPath, CrudViewModel<T> viewModel)
-        {
-            _Title = title;
-            _IconPath = iconPath;
-            _ViewModel = viewModel;
+            WeakEventManager.Default.RemoveSource(this);
         }
         #endregion
+
     }
 
 }

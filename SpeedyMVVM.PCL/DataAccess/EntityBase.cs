@@ -1,14 +1,13 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
-using SpeedyMVVM.Utilities;
-using System;
-using System.ComponentModel;
+﻿using SpeedyMVVM.Validation;
+using System.Runtime.Serialization;
 
 namespace SpeedyMVVM.DataAccess
 {
     /// <summary>
     /// Basic class to build an Entity for data-access purpose.
     /// </summary>
-    public abstract class EntityBase : ObservableObject
+    [DataContract]
+    public abstract class EntityBase : ValidableObject
     {
         #region Fields
         private EntityStatusEnum _EntityStatus;
@@ -19,6 +18,7 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Actual Status of the Entity.
         /// </summary>
+        [DataMember]
         public EntityStatusEnum EntityStatus
         {
             get { return _EntityStatus; }

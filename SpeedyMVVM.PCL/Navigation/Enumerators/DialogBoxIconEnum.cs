@@ -1,5 +1,5 @@
 ﻿
-namespace SpeedyMVVM.Navigation.Enumerators
+namespace SpeedyMVVM.Navigation
 {
     public enum DialogBoxIconEnum
     {

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeedyMVVM", "SpeedyMVVM.PCL\SpeedyMVVM.csproj", "{FF135A87-16D8-4E3F-9BFD-B174888335F4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeedyMVVM.PCL", "SpeedyMVVM.PCL\SpeedyMVVM.PCL.csproj", "{FF135A87-16D8-4E3F-9BFD-B174888335F4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeedyMVVM.Test", "SpeedyMVVM.Test\SpeedyMVVM.Test.csproj", "{0BB4841D-7E39-4912-B1BD-6DD84300200A}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpeedyMVVM.Controls", "SpeedyMVVM.Controls", "{15A1B4B1-A934-48A0-99AA-453A4395B540}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeedyMVVM.WPF", "SpeedyMVVM.Controls.WPF\SpeedyMVVM.WPF.csproj", "{90A5A486-A282-4A02-A18F-0909E3C67569}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeedyMVVM.NET", "SpeedyMVVM.NET\SpeedyMVVM.NET.csproj", "{12EB3752-8B94-4433-B9F1-C19C53C45C6C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,6 +39,10 @@ Global
 		{90A5A486-A282-4A02-A18F-0909E3C67569}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90A5A486-A282-4A02-A18F-0909E3C67569}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90A5A486-A282-4A02-A18F-0909E3C67569}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12EB3752-8B94-4433-B9F1-C19C53C45C6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12EB3752-8B94-4433-B9F1-C19C53C45C6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12EB3752-8B94-4433-B9F1-C19C53C45C6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12EB3752-8B94-4433-B9F1-C19C53C45C6C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

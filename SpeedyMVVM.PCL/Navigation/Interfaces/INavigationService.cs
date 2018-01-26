@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SpeedyMVVM.Navigation.Interfaces
+namespace SpeedyMVVM.Navigation
 {
     public interface INavigationService
     {

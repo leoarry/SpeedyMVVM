@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // Le informazioni generali relative a un assembly sono controllate dal seguente 
 // set di attributi. Modificare i valori di questi attributi per modificare le informazioni
 // associate a un assembly.
-[assembly: AssemblyTitle("SpeedyMVVM")]
+[assembly: AssemblyTitle("SpeedyMVVM.PCL")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
@@ -15,6 +15,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("it")]
+[assembly: InternalsVisibleTo("System.Runtime.Serialization")]
+
 
 // Le informazioni sulla versione di un assembly sono costituite dai seguenti quattro valori:
 //

@@ -50,7 +50,7 @@ namespace SpeedyMVVM.Test
                 new UserModel {Name="Foxy", Surname="Lady" },
                 new UserModel {Name="Peter", Surname="Griffin" },
                 new UserModel {Name="Fernanda", Surname="Lopez" }
-            }.AsObservableCollection();
+            }.ToObservableCollection();
 
             filter.Filters.Add(new ExpressionModel
             {

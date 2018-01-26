@@ -1,5 +1,4 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
-using SpeedyMVVM.Expressions;
+﻿using SpeedyMVVM.Expressions;
 using SpeedyMVVM.Utilities;
 using System;
 using System.Collections.Generic;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace SpeedyMVVM.DataAccess
 {
@@ -18,6 +18,9 @@ namespace SpeedyMVVM.DataAccess
     public class EntityFilterViewModel<T> : ViewModelBase where T : EntityBase
     {
         #region Field
+        private IRepositoryService<T> _DataService;
+        private RelayCommand<ExpressionModel> _AddFilter;
+        private RelayCommand _RemoveFilter;
         private RelayCommand<object> _FilterCommand;
         private ObservableCollection<ExpressionModel> _Filters;
         private ExpressionModel _SelectedFilter;
@@ -30,15 +33,8 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public ObservableCollection<ExpressionModel> Filters
         {
-            get { return (_Filters == null) ? _Filters = new ObservableCollection<ExpressionModel>() : _Filters; }
-            set
-            {
-                if (_Filters != value)
-                {
-                    _Filters = value;
-                    OnPropertyChanged(nameof(Filters));
-                }
-            }
+            get { return _Filters ?? (_Filters = new ObservableCollection<ExpressionModel>()); }
+            set { SetProperty(ref _Filters, value); }
         }
 
         /// <summary>
@@ -46,31 +42,8 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public ExpressionModel SelectedFilter
         {
-            get { return (_SelectedFilter == null) ? _SelectedFilter = new ExpressionModel() : _SelectedFilter; }
-            set
-            {
-                if (_SelectedFilter != value)
-                {
-                    _SelectedFilter = value;
-                    OnPropertyChanged(nameof(SelectedFilter));
-                }
-            }
-        }
-
-        /// <summary>
-        /// List of properties names for <typeparamref name="T"/>.
-        /// </summary>
-        public ObservableCollection<string> PropertyList
-        {
-            get
-            {
-                var pInfo = typeof(T).GetRuntimeProperties();
-                List<string> myList = new List<string>();
-                myList = pInfo.Where(p => !p.PropertyType.GetTypeInfo().IsSubclassOf(typeof(EntityBase)) &&
-                    !(p.PropertyType.GetTypeInfo().IsGenericType && p.PropertyType.GetTypeInfo().GetGenericTypeDefinition() == typeof(ObservableCollection<>))).Select(p => p.Name).ToList();
-                myList.Remove(nameof(EntityBase.EntityStatus));
-                return new ObservableCollection<string>(myList);
-            }
+            get { return _SelectedFilter; }
+            set { SetProperty(ref _SelectedFilter, value); }
         }
 
         /// <summary>
@@ -78,26 +51,18 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public ObservableCollection<T> Items
         {
-            get
-            {
-                if (_Items == null)
-                    _Items = new ObservableCollection<T>();
-                return _Items;
-            }
-            set
-            {
-                if (_Items != value)
-                {
-                    _Items = value;
-                    OnPropertyChanged(nameof(Items));
-                }
-            }
+            get { return _Items ?? (_Items = new ObservableCollection<T>()); }
+            set { SetProperty(ref _Items, value); }
         }
 
         /// <summary>
         /// Data service where retrieve data.
         /// </summary>
-        public virtual IRepositoryService<T> DataService { get; set; }
+        public IRepositoryService<T> DataService
+        {
+            get { return _DataService; }
+            set { _DataService = value; }
+        }
 
         /// <summary>
         /// Hidden expression which will be added in AND logic to the 'Filters' generated expression.
@@ -109,9 +74,9 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Add a new filter to the collection 'Filters'.
         /// </summary>
-        public RelayCommand AddFilterCommand
+        public RelayCommand<ExpressionModel> AddFilterCommand
         {
-            get { return new RelayCommand(() => Filters.Add(new ExpressionModel())); }
+            get { return _AddFilter ?? (_AddFilter = new RelayCommand<ExpressionModel>((model) => Filters.Add(model??(new ExpressionModel())), true)); }
         }
 
         /// <summary>
@@ -119,7 +84,7 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         public RelayCommand RemoveFilterCommand
         {
-            get { return new RelayCommand(() => Filters.Remove(SelectedFilter)); }
+            get { return _RemoveFilter ?? (_RemoveFilter = new RelayCommand(() => Filters.Remove(SelectedFilter))); }
         }
 
         /// <summary>
@@ -129,7 +94,7 @@ namespace SpeedyMVVM.DataAccess
         {
             get
             {
-                return (_FilterCommand == null) ? _FilterCommand = new RelayCommand<object>(async(param)=> await FilterCommandExecute(param), true) : _FilterCommand;
+                return _FilterCommand ?? (_FilterCommand = new RelayCommand<object>(async(param)=> await FilterCommandExecute(param), true));
             }
         }
         #endregion
@@ -138,14 +103,12 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Execute the query using 'DataService' to retrieve the collection 'Items'.
         /// </summary>
-        public virtual async Task<bool> FilterCommandExecute()
+        public async Task<bool> FilterCommandExecute()
         {
-            if (_SelectedFilter != null && !Filters.Contains(_SelectedFilter))
-                Filters.Add(_SelectedFilter);
             if (DataService != null)
-                Items = await GetCollectionFromDataService();
+                Items = await FilterFromDataService();
             else
-                Items = await FilterCollection(Items);
+                Items = await FilterFromCollection(Items);
             return true;
         }
 
@@ -162,29 +125,29 @@ namespace SpeedyMVVM.DataAccess
         }
 
         /// <summary>
-        /// Execute the query using 'DataService' to return a collection.
+        /// Return a collection queryied from DataService, filtered using the filters collection and hidden expression.
         /// </summary>
         /// <returns>Result of the query.</returns>
-        public async Task<ObservableCollection<T>> GetCollectionFromDataService()
+        public async Task<ObservableCollection<T>> FilterFromDataService()
         {
             if (DataService == null)
                 return null;
             var myExp = GetExpression();
-            var myList = await DataService.RetrieveCollectionAsync(myExp);
+            var myList = await DataService.RetrieveCollection(myExp);
             return (myList != null) ? myList : new ObservableCollection<T>();
         }
 
         /// <summary>
-        /// Filter the collection passed as parameter.
+        /// Return the collection passed as parameter, filtered using the filters collection and hidden expression.
         /// </summary>
         /// <param name="collection">Collection to filter.</param>
         /// <returns>Filtered collection.</returns>
-        public async Task<ObservableCollection<T>> FilterCollection(ObservableCollection<T> collection)
+        public async Task<ObservableCollection<T>> FilterFromCollection(ObservableCollection<T> collection)
         {
             return await Task.Factory.StartNew(() =>
             {
                 var myExp = GetExpression();
-                return (collection != null) ? collection.AsQueryable().Where(myExp).AsObservableCollection() : new ObservableCollection<T>();
+                return (collection != null) ? collection.AsQueryable().Where(myExp).ToObservableCollection() : new ObservableCollection<T>();
             });
         }
 
@@ -192,11 +155,10 @@ namespace SpeedyMVVM.DataAccess
         /// Initialize EntityFilter using the locator parameter.
         /// </summary>
         /// <param name="locator">ServiceLocator containing the services.</param>
-        public override void Initialize(ServiceLocator locator)
+        public override void InjectServices(ServiceLocator locator)
         {
-            ServiceContainer = locator;
-            DataService = locator.GetService<IRepositoryService<T>>();
-            IsInitialized = true;
+            base.InjectServices(locator);
+            DataService = GetService<IRepositoryService<T>>();
         }
 
         /// <summary>
@@ -206,6 +168,8 @@ namespace SpeedyMVVM.DataAccess
         private Expression<Func<T,bool>> GetExpression()
         {
             Expression<Func<T, bool>> myExp = null;
+            if (_SelectedFilter != null && !Filters.Contains(_SelectedFilter))
+                Filters.Add(_SelectedFilter);
             if (_Filters != null && _Filters.Count > 0)
             {
                 myExp = ExpressionBuilder.GetExpression<T>(_Filters);
@@ -220,6 +184,15 @@ namespace SpeedyMVVM.DataAccess
         }
         #endregion
 
+        #region Methods Overriding
+        protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            if (propertyName == nameof(SelectedFilter))
+                RemoveFilterCommand.IsEnabled = SelectedFilter != null;
+            base.OnPropertyChanged(propertyName);
+        }
+        #endregion
+
         #region Constructors
         /// <summary>
         /// Initialize a new instance of EntityFilterViewModel
@@ -231,23 +204,17 @@ namespace SpeedyMVVM.DataAccess
         /// <summary>
         /// Initialize a new instance of EntityFilter using the locator parameter.
         /// </summary>
-        /// <param name="locator">ServiceLocator containing the services.</param>
-        public EntityFilterViewModel(ServiceLocator locator)
+        /// <param name="locator">ServiceLocator containing the services</param>
+        /// <param name="expressionModels">ExpressionModels to add to the 'Filters' collection</param>
+        public EntityFilterViewModel(ServiceLocator locator, params ExpressionModel[] expressionModels)
         {
-            Initialize(locator);
-        }
-
-        /// <summary>
-        /// Initialize a new instance of EntityFilter using the locator parameter.
-        /// </summary>
-        /// <param name="locator">ServiceLocator containing the services.</param>
-        /// <param name="expressionModel">ExpressionModel to add to the 'Filters' collection.</param>
-        public EntityFilterViewModel(ServiceLocator locator, ExpressionModel expressionModel)
-        {
-            Initialize(locator);
-            _SelectedFilter = expressionModel;
-            _Filters = new ObservableCollection<ExpressionModel>();
-            _Filters.Add(_SelectedFilter);
+            ServiceContainer = locator;
+            DataService = locator.GetService<IRepositoryService<T>>();
+            if (expressionModels != null)
+            {
+                _SelectedFilter = expressionModels[0];
+                _Filters = expressionModels.ToObservableCollection();
+            }
         }
 
         /// <summary>
@@ -255,11 +222,14 @@ namespace SpeedyMVVM.DataAccess
         /// </summary>
         /// <param name="locator">ServiceLocator containing the services</param>
         /// <param name="expressionModels">ExpressionModels to add to the 'Filters' collection</param>
-        public EntityFilterViewModel(ServiceLocator locator, ObservableCollection<ExpressionModel> expressionModels)
+        public EntityFilterViewModel(IRepositoryService<T> dataService, params ExpressionModel[] expressionModels)
         {
-            Initialize(locator);
-            _SelectedFilter = expressionModels[0];
-            _Filters = expressionModels;
+            DataService = dataService;
+            if (expressionModels != null)
+            {
+                _SelectedFilter = expressionModels[0];
+                _Filters = expressionModels.ToObservableCollection();
+            }
         }
         #endregion
     }

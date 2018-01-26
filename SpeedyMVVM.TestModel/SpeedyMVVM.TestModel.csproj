@@ -35,9 +35,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
-    <ProjectReference Include="..\SpeedyMVVM.PCL\SpeedyMVVM.csproj">
+    <ProjectReference Include="..\SpeedyMVVM.PCL\SpeedyMVVM.PCL.csproj">
       <Project>{ff135a87-16d8-4e3f-9bfd-b174888335f4}</Project>
-      <Name>SpeedyMVVM</Name>
+      <Name>SpeedyMVVM.PCL</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

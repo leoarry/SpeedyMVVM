@@ -5,7 +5,6 @@ using System.Linq;
 using SpeedyMVVM.DataAccess;
 using SpeedyMVVM.TestModel.Models;
 using SpeedyMVVM.TestModel;
-using SpeedyMVVM.DataAccess.Interfaces;
 using SpeedyMVVM.Utilities;
 using SpeedyMVVM.TestModel.Services;
 using System.Threading.Tasks;
@@ -23,7 +22,7 @@ namespace SpeedyMVVM.Test
             var userToAdd = new UserModel { Name = "Donald", Surname = "Duck", AccessLevel = 0 };
             var viewModel = new CrudViewModel<UserModel>();
 
-            viewModel.AddCommandExecute(userToAdd).Wait();
+            viewModel.AddCommand.Execute(userToAdd);
 
             var retrievedUser = viewModel.Items.Where(u => u.Name == userToAdd.Name).FirstOrDefault();
 
@@ -38,7 +37,7 @@ namespace SpeedyMVVM.Test
             
             viewModel.SelectedItem = userToRemove;
             viewModel.Items.Add(viewModel.SelectedItem);
-            viewModel.RemoveCommandExecute(null).Wait();
+            viewModel.RemoveCommand.Execute(null);
             
             Assert.IsTrue(viewModel.Items.Where(u => u.Name == "Donald").Count()==0);
         }
@@ -55,10 +54,10 @@ namespace SpeedyMVVM.Test
                 new UserModel {Name="Fernanda", Surname="Lopez" }
             };
 
-            viewModel.Items = listOfUsers.AsObservableCollection();
+            viewModel.Items = listOfUsers.ToObservableCollection();
             viewModel.Filter.HiddenExpression = u => u.Name.StartsWith("F");
             
-            viewModel.FilterCommandExecute().Wait();
+            viewModel.SearchCommand.Execute();
             Assert.IsTrue(viewModel.Items.Where(u => u.Name.StartsWith("F")).Count() == 2);        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using SpeedyMVVM.DataAccess;
-using SpeedyMVVM.DataAccess.Interfaces;
 using SpeedyMVVM.Utilities;
 using System;
 using System.Collections.Generic;

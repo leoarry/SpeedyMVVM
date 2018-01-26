@@ -1,18 +1,15 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
-using SpeedyMVVM.Navigation.Interfaces;
-using SpeedyMVVM.Navigation.Models;
-using SpeedyMVVM.Utilities;
-using SpeedyMVVM.Utilities.Interfaces;
+﻿using SpeedyMVVM.Utilities;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System;
+using SpeedyMVVM.DataAccess;
 
 namespace SpeedyMVVM.Navigation
 {
     /// <summary>
     /// Define a container if pages
     /// </summary>
-    public class PageManagerViewModel : ViewModelBase
+    public class PageManagerViewModel : ViewModelBase, IPageManagerViewModel
     {
         #region Fields
         private bool _IsExpanded;
@@ -62,8 +59,7 @@ namespace SpeedyMVVM.Navigation
         {
             get
             {
-                return (_PageViewModels == null) ? 
-                    _PageViewModels = new ObservableCollection<IPageViewModel>() : _PageViewModels;
+                return _PageViewModels ?? (_PageViewModels = new ObservableCollection<IPageViewModel>());
             }
             set
             {
@@ -92,7 +88,7 @@ namespace SpeedyMVVM.Navigation
                         ((PageManagerViewModel)_CurrentPageViewModel).IsExpanded = false;
                     _CurrentPageViewModel = value;
                     if (!_CurrentPageViewModel.IsInitialized)
-                        _CurrentPageViewModel.Initialize(ServiceContainer);
+                        _CurrentPageViewModel.InjectServices(ServiceContainer);
                     OnPropertyChanged(nameof(CurrentPage));
                 }
             }
@@ -107,8 +103,7 @@ namespace SpeedyMVVM.Navigation
         {
             get
             {
-                return (_ChangePageCommand == null) ? 
-                    _ChangePageCommand = new RelayCommand<IPageViewModel>(p => ChangeViewModel(p), true) : _ChangePageCommand;
+                return _ChangePageCommand ?? (_ChangePageCommand = new RelayCommand<IPageViewModel>(p => ChangeCurrentPage(p), true));
             }
         }
         #endregion
@@ -118,7 +113,7 @@ namespace SpeedyMVVM.Navigation
         /// Set the parameter 'viewModel' as current page.
         /// </summary>
         /// <param name="viewModel">Page to show.</param>
-        public void ChangeViewModel(IPageViewModel viewModel)
+        public void ChangeCurrentPage(IPageViewModel viewModel)
         {
             if (!Pages.Contains(viewModel))
                 Pages.Add(viewModel);
@@ -143,9 +138,9 @@ namespace SpeedyMVVM.Navigation
                 if (!ser.PageSettings.Any(ps => ps.PageName == p.Title))
                 {
                     var page = new PageSettingModel { PageName = p.Title, AccessLevel = 0 };
-                    pageDataService.AddEntityAsync(page);
+                    pageDataService.Add(page);
                     ser.PageSettings.Add(page);
-                    pageDataService.SaveChangesAsync();
+                    pageDataService.Save();
                 }
                 var pLevel = ser.PageSettings.Where(ps => ps.PageName == p.Title).FirstOrDefault();
                 if (ser.CurrentUserLevel > pLevel.AccessLevel) { p.IsVisible = false; }
@@ -160,12 +155,11 @@ namespace SpeedyMVVM.Navigation
         /// Initialize the current instance of PageManagerViewModel using the parameter 'locator'.
         /// </summary>
         /// <param name="locator">Service container with the current services</param>
-        public override void Initialize(ServiceLocator locator)
+        public override void InjectServices(ServiceLocator locator)
         {
-            ServiceContainer = locator;
+            base.InjectServices(locator);
             if (AutoSetVisibility)
                 SetPagesVisibility();
-            IsInitialized = true;
         }
         #endregion
 
@@ -192,7 +186,7 @@ namespace SpeedyMVVM.Navigation
         /// <param name="locator">Service container with current services.</param>
         public PageManagerViewModel(ServiceLocator locator)
         {
-            Initialize(locator);
+            InjectServices(locator);
         }
 
         /// <summary>
@@ -203,7 +197,7 @@ namespace SpeedyMVVM.Navigation
         public PageManagerViewModel(ServiceLocator locator, bool autoSetVisibility)
         {
             _AutoSetVisibility = autoSetVisibility;
-            Initialize(locator);
+            InjectServices(locator);
         }
         #endregion
     }

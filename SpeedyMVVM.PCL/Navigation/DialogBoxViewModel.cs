@@ -1,5 +1,4 @@
-﻿using SpeedyMVVM.Navigation.Enumerators;
-using SpeedyMVVM.Navigation.Interfaces;
+﻿using SpeedyMVVM.Navigation;
 using SpeedyMVVM.Utilities;
 using System;
 
@@ -16,13 +15,12 @@ namespace SpeedyMVVM.Navigation
         private string _Message;
         private string _TextInput;
         private bool _IsInputBox;
-        private bool _ConfirmCommandVisibility;
         private bool _DeclineCommandVisibility;
         private bool _CancelCommandVisibility;
-        private string _ConfirmCommandText;
-        private string _DeclineCommandText;
-        private string _CancelCommandText;
         private DialogBoxEnum _DialogBoxType;
+        private RelayCommand _ConfirmCommand;
+        private RelayCommand _DeclineCommand;
+        private RelayCommand _CancelCommand;
         #endregion
 
         #region IDialogBox Implementation
@@ -32,14 +30,7 @@ namespace SpeedyMVVM.Navigation
         public string IconPath
         {
             get { return _IconPath; }
-            set
-            {
-                if (_IconPath != value)
-                {
-                    _IconPath = value;
-                    OnPropertyChanged(nameof(IconPath));
-                }
-            }
+            set { SetProperty(ref _IconPath, value); }
         }
 
         /// <summary>
@@ -48,14 +39,7 @@ namespace SpeedyMVVM.Navigation
         public string Title
         {
             get { return _Title; }
-            set
-            {
-                if (_Title != value)
-                {
-                    _Title = value;
-                    OnPropertyChanged(nameof(Title));
-                }
-            }
+            set { SetProperty(ref _Title, value); }
         }
 
         /// <summary>
@@ -64,14 +48,7 @@ namespace SpeedyMVVM.Navigation
         public bool IsVisible
         {
             get { return _IsVisible; }
-            set
-            {
-                if (_IsVisible != value)
-                {
-                    _IsVisible = value;
-                    OnPropertyChanged(nameof(IsVisible));
-                }
-            }
+            set { SetProperty(ref _IsVisible, value); }
         }
 
         /// <summary>
@@ -82,19 +59,25 @@ namespace SpeedyMVVM.Navigation
             get { return _DialogResult; }
             set
             {
-                if (_DialogResult != value)
-                {
-                    _DialogResult = value;
-                    OnPropertyChanged(nameof(DialogResult));
-                }
-                DialogResultChanged?.Invoke(this, value);
+                SetProperty(ref _DialogResult, value);
+                WeakEventManager.Default.RaiseEvent(this, value, nameof(DialogResultChanged));
             }
         }
 
         /// <summary>
         /// Raised when 'DialogResult' changed.
         /// </summary>
-        public event EventHandler<bool?> DialogResultChanged;
+        public event EventHandler<bool?> DialogResultChanged
+        {
+            add
+            {
+                WeakEventManager.Default.AddEventHandler(this, nameof(DialogResultChanged), value);
+            }
+            remove
+            {
+                WeakEventManager.Default.RemoveEventHandler(this, nameof(DialogResultChanged), value);
+            }
+        }
         #endregion
 
         #region Property
@@ -124,6 +107,7 @@ namespace SpeedyMVVM.Navigation
             {
                 if (value != _TextInput)
                 {
+                    ConfirmCommand.IsEnabled = !string.IsNullOrEmpty(value);
                     _TextInput = value;
                     OnPropertyChanged(nameof(TextInput));
                 }
@@ -142,22 +126,6 @@ namespace SpeedyMVVM.Navigation
                 {
                     _IsInputBox = value;
                     OnPropertyChanged(nameof(IsInputBox));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get/Set the visibility of the confirmation button.
-        /// </summary>
-        public bool ConfirmCommandVisibility
-        {
-            get { return _ConfirmCommandVisibility; }
-            set
-            {
-                if (_ConfirmCommandVisibility != value)
-                {
-                    _ConfirmCommandVisibility = value;
-                    OnPropertyChanged(nameof(ConfirmCommandVisibility));
                 }
             }
         }
@@ -193,118 +161,73 @@ namespace SpeedyMVVM.Navigation
                 }
             }
         }
-
-        /// <summary>
-        /// Get/Set the text of the confirmation button.
-        /// </summary>
-        public string ConfirmCommandText
-        {
-            get { return _ConfirmCommandText; }
-            set
-            {
-                if (_ConfirmCommandText != value)
-                {
-                    _ConfirmCommandText = value;
-                    OnPropertyChanged(nameof(ConfirmCommandText));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get/Set the text of the decline button. 
-        /// </summary>
-        public string DeclineCommandText
-        {
-            get { return _DeclineCommandText; }
-            set
-            {
-                if (_DeclineCommandText != value)
-                {
-                    _DeclineCommandText = value;
-                    OnPropertyChanged(nameof(DeclineCommandText));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get/Set the text of the cancel button.
-        /// </summary>
-        public string CancelCommandText
-        {
-            get { return _CancelCommandText; }
-            set
-            {
-                if (_CancelCommandText != value)
-                {
-                    _CancelCommandText = value;
-                    OnPropertyChanged(nameof(CancelCommandText));
-                }
-            }
-        }
         #endregion
 
         #region Commands
         /// <summary>
         /// Command to set TRUE 'DialogResult'.
         /// </summary>
-        public RelayCommand ConfirmCommand { get { return new RelayCommand(() => DialogResult = true, true); } }
+        public RelayCommand ConfirmCommand
+        {
+            get { return _ConfirmCommand ?? (_ConfirmCommand = new RelayCommand(() => DialogResult = true, true)); }
+        }
 
         /// <summary>
         /// Command to set FALSE 'DialogResult'.
         /// </summary>
-        public RelayCommand DeclineCommand { get { return new RelayCommand(() => DialogResult = false, true); } }
+        public RelayCommand DeclineCommand
+        {
+            get { return _DeclineCommand ?? (_DeclineCommand = new RelayCommand(() => DialogResult = false, true)); }
+        }
 
         /// <summary>
         /// Command to set NULL 'DialogResult'.
         /// </summary>
-        public RelayCommand CancelCommand { get { return new RelayCommand(() => DialogResult = null, true); } }
+        public RelayCommand CancelCommand
+        {
+            get { return _CancelCommand ?? (_CancelCommand = new RelayCommand(() => DialogResult = null, true)); }
+        }
         #endregion
 
         #region Methods
-        public override void Initialize(ServiceLocator locator)
+        private void OnNewDialogBoxViewModel()
         {
             _IsVisible = false;
             switch (_DialogBoxType)
             {
                 case DialogBoxEnum.InputBox:
                     _IsInputBox = true;
-                    _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "OK";
-                    _CancelCommandText = "Cancel";
+                    ConfirmCommand.Label = "OK";
+                    CancelCommand.Label = "Cancel";
+                    ConfirmCommand.IsEnabled = false;
                     break;
                 case DialogBoxEnum.Ok:
-                    _ConfirmCommandVisibility = true;
-                    _ConfirmCommandText = "OK";
+                    ConfirmCommand.Label = "OK";
                     break;
                 case DialogBoxEnum.OkCancel:
-                    _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "OK";
-                    _CancelCommandText = "Cancel";
+                    ConfirmCommand.Label = "OK";
+                    CancelCommand.Label = "Cancel";
                     break;
                 case DialogBoxEnum.YesCancel:
-                    _ConfirmCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "Yes";
-                    _CancelCommandText = "Cancel";
+                    ConfirmCommand.Label = "Yes";
+                    CancelCommand.Label = "Cancel";
                     break;
                 case DialogBoxEnum.YesNo:
-                    _ConfirmCommandVisibility = true;
                     _DeclineCommandVisibility = true;
-                    _ConfirmCommandText = "Yes";
-                    _DeclineCommandText = "No";
+                    ConfirmCommand.Label = "Yes";
+                    DeclineCommand.Label = "No";
                     break;
                 case DialogBoxEnum.YesNoCancel:
-                    _ConfirmCommandVisibility = true;
                     _DeclineCommandVisibility = true;
                     _CancelCommandVisibility = true;
-                    _ConfirmCommandText = "Yes";
-                    _DeclineCommandText = "No";
-                    _CancelCommandText = "Cancel";
+                    ConfirmCommand.Label = "Yes";
+                    DeclineCommand.Label = "No";
+                    CancelCommand.Label = "Cancel";
                     break;
             }
-            IsInitialized = true;
         }
         #endregion
 
@@ -322,41 +245,15 @@ namespace SpeedyMVVM.Navigation
         /// </summary>
         /// <param name="dialogBoxType">Type of dialog box.</param>
         /// <param name="message">Message to show on the dialog box.</param>
-        public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message)
-        {
-            _DialogBoxType = dialogBoxType;
-            _Message = message;
-            Initialize(null);
-        }
-
-        /// <summary>
-        /// Create a new instance of DialogBoxViewModel.
-        /// </summary>
-        /// <param name="dialogBoxType">Type of dialog box.</param>
-        /// <param name="message">Message to show on the dialog box.</param>
-        /// <param name="title">Title of the pop-up window.</param>
-        public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message, string title)
-        {
-            _DialogBoxType = dialogBoxType;
-            _Title = title;
-            _Message = message;
-            Initialize(null);
-        }
-
-        /// <summary>
-        /// Create a new instance of DialogBoxViewModel.
-        /// </summary>
-        /// <param name="dialogBoxType">Type of dialog box.</param>
-        /// <param name="message">Message to show on the dialog box.</param>
         /// <param name="title">Title of the pop-up window.</param>
         /// <param name="iconPath">Icon path for the pop-up window.</param>
-        public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message, string title, string iconPath)
+        public DialogBoxViewModel(DialogBoxEnum dialogBoxType, string message = null, string title = null, string iconPath = null)
         {
             _DialogBoxType = dialogBoxType;
             _Title = title;
             _Message = message;
             _IconPath = iconPath;
-            Initialize(null);
+            OnNewDialogBoxViewModel();
         }
         #endregion
 

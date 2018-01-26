@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SpeedyMVVM.Navigation.Models
+namespace SpeedyMVVM.Navigation
 {
     public class PageSettingModel : EntityBase
     {

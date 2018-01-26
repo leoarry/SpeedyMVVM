@@ -51,7 +51,7 @@ namespace SpeedyMVVM.Planning
                 return _Items= _Items.Where(r => r.PlannedDate >= PlannedDate &&
                                                  r.PlannedDate < PlannedDate.AddDays(1))
                                      .OrderBy(pd=>pd.PlannedDate.TimeOfDay)
-                                     .AsObservableCollection(); ;
+                                     .ToObservableCollection(); ;
             }
             set
             {

@@ -11,14 +11,6 @@ namespace SpeedyMVVM.Expressions
     /// </summary>
     public static class ExpressionBuilder
     {
-
-        #region Static Fields
-        private static MethodInfo containsMethod = typeof(string).GetTypeInfo().GetDeclaredMethod("Contains");
-        private static MethodInfo startsWithMethod = typeof(string).GetRuntimeMethod("StartsWith", new[] { typeof(string) });
-        private static MethodInfo endsWithMethod = typeof(string).GetRuntimeMethod("EndsWith", new[] { typeof(string) });
-        private static MethodInfo isNullOrEmptyMethod = typeof(string).GetRuntimeMethod("IsNullOrEmpty", new[] { typeof(string) });
-        #endregion
-
         #region Static Methods
         /// <summary>
         /// Get an Expression based on the parameter 'filters'.
@@ -155,13 +147,13 @@ namespace SpeedyMVVM.Expressions
                 case ExpressionOperatorEnum.LessThanOrEqual:
                     return Expression.LessThanOrEqual(member, constant);
                 case ExpressionOperatorEnum.Contains:
-                    return Expression.Call(member, containsMethod, constant);
+                    return Expression.Call(member, ExpressionExtensions.ContainsMethod, constant);
                 case ExpressionOperatorEnum.StartsWith:
-                    return Expression.Call(member, startsWithMethod, constant);
+                    return Expression.Call(member, ExpressionExtensions.StartsWithMethod, constant);
                 case ExpressionOperatorEnum.EndsWith:
-                    return Expression.Call(member, endsWithMethod, constant);
+                    return Expression.Call(member, ExpressionExtensions.EndsWithMethod, constant);
                 case ExpressionOperatorEnum.IsNullOrEmpty:
-                    return Expression.Call(member, isNullOrEmptyMethod, constant);
+                    return Expression.Call(member, ExpressionExtensions.IsNullOrEmptyMethod, constant);
             }
 
             return null;

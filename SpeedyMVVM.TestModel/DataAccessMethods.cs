@@ -1,4 +1,5 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
+﻿using SpeedyMVVM.DataAccess;
+using SpeedyMVVM.Navigation;
 using SpeedyMVVM.TestModel.Models;
 using SpeedyMVVM.TestModel.Services;
 using SpeedyMVVM.Utilities;
@@ -27,7 +28,7 @@ namespace SpeedyMVVM.TestModel
         {
             var locator = new ServiceLocator();
             locator.RegisterService<IRepositoryService<UserModel>>(new RepositoryService<UserModel> { List = GetListOfUser() });
-            locator.RegisterService<IEntityDialogBoxService>(new EntitiesDialogBoxService());
+            locator.RegisterService<IDialogBoxService>(new EntitiesDialogBoxService());
             return locator;
         }
     }

@@ -1,7 +1,7 @@
-﻿using SpeedyMVVM.Navigation.Models;
+﻿using SpeedyMVVM.Navigation;
 using System.Collections.ObjectModel;
 
-namespace SpeedyMVVM.Utilities.Interfaces
+namespace SpeedyMVVM.Utilities
 {
     public interface IAppRuntimeSettingsService
     {

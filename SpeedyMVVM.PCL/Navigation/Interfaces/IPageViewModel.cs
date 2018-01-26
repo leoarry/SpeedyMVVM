@@ -1,6 +1,7 @@
-﻿using SpeedyMVVM.Utilities.Interfaces;
+﻿using SpeedyMVVM.Utilities;
+using System;
 
-namespace SpeedyMVVM.Navigation.Interfaces
+namespace SpeedyMVVM.Navigation
 {
     /// <summary>
     /// Interface to identify a page.

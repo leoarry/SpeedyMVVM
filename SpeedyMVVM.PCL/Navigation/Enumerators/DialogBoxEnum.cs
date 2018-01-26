@@ -1,5 +1,5 @@
 ﻿
-namespace SpeedyMVVM.Navigation.Enumerators
+namespace SpeedyMVVM.Navigation
 {
     /// <summary>
     /// Define the type of DialogBox

@@ -1,664 +1,360 @@
-﻿using System;
-using SpeedyMVVM.Utilities;
+﻿using SpeedyMVVM.Utilities;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using SpeedyMVVM.DataAccess.Interfaces;
-using System.Threading.Tasks;
-using SpeedyMVVM.Navigation.Models;
-using System.Linq.Expressions;
-using System.Collections;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using SpeedyMVVM.Validation;
+using System.Linq.Expressions;
+using System.Collections.Specialized;
 using System.ComponentModel;
+using SpeedyMVVM.Navigation;
 
 namespace SpeedyMVVM.DataAccess
 {
     /// <summary>
-    /// Class which implement a basic CRUD operation with an EntityBase.
+    /// View model offering the basics functions for CRUD data access using repository services and validation model.
     /// </summary>
-    /// <typeparam name="T">Type of Entity.</typeparam>
-    public class CrudViewModel<T> : ViewModelBase where T : EntityBase
+    /// <typeparam name="T"></typeparam>
+    public class CrudViewModel<T> : ViewModelBase, ICrudViewModel<T> where T:EntityBase
     {
         #region Fields
-        private bool _CanSave;
-        private bool _CanAdd;
-        private bool _CanSearch;
-        private bool _DeleteOnCascade;
-        private RelayCommand<T> _AddCommand;
-        private RelayCommand<object> _AddSelectionCommand;
-        private RelayCommand<T> _RemoveCommand;
-        private RelayCommand<T> _PopOutCommand;
-        private RelayCommand _FilterCommand;
-        private RelayCommand _SaveCommand;
-        private ContextMenuItemModel _PickEntitiesCommand;
-        private ContextMenuItemModel _RemoveSelectedItemCommand;
-        private ContextMenuItemModel _PopOutSelectedItemCommand;
-        private IRepositoryService<T> _DataService;
-        private IEntityDialogBoxService _DialogService;
-        private EntityFilterViewModel<T> _Filter;
-        private ObservableCollection<T> _SelectedItems;
+        private IDialogBoxService _DialogService;
+        private List<RepositoryBehaviourEnum> _RepositoryBehaviours;
         private T _SelectedItem;
-        private ObservableCollection<ContextMenuItemModel> _ContextMenu;
-        private Expression<Func<T, bool>> _PickEntitiesExpression;
+        private ObservableCollection<T> _SelectedItems;
+        private ObservableCollection<T> _Items;
+        private RelayCommand<T> _AddCommand;
+        private RelayCommand<T> _RemoveCommand;
+        private RelayCommand<T> _SaveCommand;
+        private RelayCommand<Expression<Func<T,bool>>> _SearchCommand;
+        private EntityFilterViewModel<T> _Filter;
+        private IValidator<T> _Validator;
         #endregion
 
-        #region Properties
+        #region Services
         /// <summary>
-        /// Filter the collection of CRUDViewModel adding query support.
-        /// </summary>
-        public EntityFilterViewModel<T> Filter
-        {
-            get { return (_Filter == null) ? _Filter = new EntityFilterViewModel<T>() : _Filter; }
-            set
-            {
-                if (_Filter != value)
-                {
-                    _Filter = value;
-                    OnPropertyChanged(nameof(Filter));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Set 'TRUE' if the CrudViewModel can persist entities throw DataService when available (Default=TRUE).
-        /// </summary>
-        public bool CanSave
-        {
-            get { return _CanSave; }
-            set
-            {
-                if (_CanSave != value)
-                {
-                    _CanSave = value;
-                    OnPropertyChanged(nameof(CanSave));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Set 'TRUE' if the CrudViewModel can add entities throw DataService when available (Default=TRUE).
-        /// </summary>
-        public bool CanAdd
-        {
-            get { return _CanAdd; }
-            set
-            {
-                if (_CanAdd != value)
-                {
-                    _CanAdd = value;
-                    OnPropertyChanged(nameof(CanAdd));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Set 'TRUE' if the filter can execute query using DataService (Default=TRUE).
-        /// </summary>
-        public bool CanSearch
-        {
-            get { return _CanSearch; }
-            set
-            {
-                if (_CanSearch != value)
-                {
-                    _CanSearch = value;
-                    if (_CanSearch)
-                        Filter.DataService = DataService;
-                    OnPropertyChanged(nameof(CanSearch));
-                }
-            }
-        }
-
-        /// <summary>
-        /// If 'TRUE' will remove the entity from the DataService (Default=TRUE).
-        /// </summary>
-        public bool DeleteOnCascade
-        {
-            get { return _DeleteOnCascade; }
-            set
-            {
-                if (_DeleteOnCascade != value)
-                {
-                    _DeleteOnCascade = value;
-                    OnPropertyChanged(nameof(DeleteOnCascade));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Repository Service where get data from.
+        /// GET/SET Filter.DataService. In case RepositoryBehaviours is null, add all CRUD behaviours.
         /// </summary>
         public IRepositoryService<T> DataService
         {
             get
             {
-                if (ServiceContainer == null)
-                    throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize DataService, can't inject services! Parameter is null.");
-                return (_DataService == null) ? _DataService = ServiceContainer.GetService<IRepositoryService<T>>() : _DataService;
+                if (Filter.DataService == null && ServiceContainer != null)
+                {
+                    Filter.DataService = GetService<IRepositoryService<T>>();
+                    if (_RepositoryBehaviours == null)
+                        _RepositoryBehaviours = new List<RepositoryBehaviourEnum> { RepositoryBehaviourEnum.Create,
+                                                                            RepositoryBehaviourEnum.Delete,
+                                                                            RepositoryBehaviourEnum.Read,
+                                                                            RepositoryBehaviourEnum.Update };
+                }
+                return Filter.DataService;
             }
             set
             {
-                _DataService = value;
-                if (_CanSearch)
-                    Filter.DataService = value;
+                Filter.DataService = value;
+                if(_RepositoryBehaviours==null)
+                    _RepositoryBehaviours = new List<RepositoryBehaviourEnum> { RepositoryBehaviourEnum.Create,
+                                                                            RepositoryBehaviourEnum.Delete,
+                                                                            RepositoryBehaviourEnum.Read,
+                                                                            RepositoryBehaviourEnum.Update };
             }
         }
-        
+
         /// <summary>
-        /// Service for UI dialogs.
+        /// User dialog service.
         /// </summary>
-        public IEntityDialogBoxService DialogService
+        public IDialogBoxService DialogService
         {
-            get
-            {
-                if (ServiceContainer == null)
-                    throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize DialogService, can't inject services! Parameter is null.");
-                return (_DialogService == null) ? _DialogService = ServiceContainer.GetService<IEntityDialogBoxService>() : _DialogService;
-            }
+            get { return _DialogService ?? (_DialogService = GetService<IDialogBoxService>()); }
             set { _DialogService = value; }
         }
+        #endregion
+
+        #region Validation Properties
+        /// <summary>
+        /// Return true when there are not errors.
+        /// </summary>
+        public bool IsValid { get { return !HasErrors; } }
 
         /// <summary>
-        /// Collection of entities.
+        /// Get if there are errors on Items or SelectedItem.
         /// </summary>
-        public ObservableCollection<T> Items
+        public bool HasErrors { get { return Items.Any(i => i.HasErrors) || (SelectedItem != null) ? SelectedItem.HasErrors : false; } }
+
+        /// <summary>
+        /// Validator
+        /// </summary>
+        public IValidator<T> Validator
         {
-            get { return Filter.Items; }
+            get { return _Validator; }
+            set { _Validator = value; }
+        }
+        #endregion
+
+        #region Properties      
+        /// <summary>
+        /// Return true when RepositoryBehaviours contains RepositoryBehaviourEnum.Read.
+        /// </summary>
+        public bool CanSearch { get { return _RepositoryBehaviours.Contains(RepositoryBehaviourEnum.Read); } }
+
+        /// <summary>
+        /// Behaviours for the repository service.
+        /// </summary>
+        public List<RepositoryBehaviourEnum> RepositoryBehaviours
+        {
+            get { return _RepositoryBehaviours ?? (_RepositoryBehaviours = new List<RepositoryBehaviourEnum>()); }
+            set { _RepositoryBehaviours = value.Distinct().ToList(); }
+        }
+
+        /// <summary>
+        /// Filter view model to filter the collection.
+        /// </summary>
+        public EntityFilterViewModel<T> Filter
+        {
+            get { return _Filter ?? (_Filter=new EntityFilterViewModel<T>()); }
             set
             {
-                Filter.Items = value;
-                OnPropertyChanged(nameof(Items));
+                _Filter = value;
+                if (ServiceContainer != null && _Filter != null)
+                    _Filter.InjectServices(ServiceContainer);
             }
         }
 
         /// <summary>
-        /// Collection of entities actually selected from 'Items'.
-        /// </summary>
-        public ObservableCollection<T> SelectedItems
-        {
-            get { return _SelectedItems; }
-            set
-            {
-                if (_SelectedItems != value)
-                {
-                    _SelectedItems = value;
-                    OnPropertyChanged(nameof(SelectedItems));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Selected entity from 'Items' collection.
+        /// Current item selected from the collection.
         /// </summary>
         public T SelectedItem
         {
             get { return _SelectedItem; }
-            set
-            {
-                if (!object.Equals(_SelectedItem,value))
-                {
-                    _SelectedItem = value;
-                    if (value != null)
-                    {
-                        RemoveCommand.IsEnabled = true;
-                        PopOutCommand.IsEnabled = true;
-                        RemoveSelectedItemCommand.Action.IsEnabled = true;
-                        PopOutSelectedItemCommand.Action.IsEnabled = true;
-                    }
-                    else
-                    {
-                        RemoveCommand.IsEnabled = false;
-                        PopOutCommand.IsEnabled = false;
-                        RemoveSelectedItemCommand.Action.IsEnabled = false;
-                        PopOutSelectedItemCommand.Action.IsEnabled = false;
-                    }
-                    OnPropertyChanged(nameof(SelectedItem));
-                }
-            }
+            set { SetProperty(ref _SelectedItem, value, nameof(SelectedItem)); }
         }
 
         /// <summary>
-        /// Collection of commands for the entity.
+        /// Current items selected from the collection.
         /// </summary>
-        public ObservableCollection<ContextMenuItemModel> ContextMenu
+        public ObservableCollection<T> SelectedItems
         {
-            get
-            {
-                if (_ContextMenu == null)
-                    SetContextMenu();
-                return _ContextMenu;
-            }
-            set
-            {
-                if (_ContextMenu != value)
-                {
-                    _ContextMenu = value;
-                    OnPropertyChanged(nameof(ContextMenu));
-                }
-            }
+            get { return _SelectedItems; }
+            set { SetProperty(ref _SelectedItems, value, nameof(SelectedItems)); }
         }
 
         /// <summary>
-        /// Expression used when executed the command 'PickEntitiesCommand'.
+        /// Collection of items.
         /// </summary>
-        public Expression<Func<T, bool>> PickEntitiesExpression
+        public ObservableCollection<T> Items
         {
-            get { return _PickEntitiesExpression; }
-            set
-            {
-                if (_PickEntitiesExpression != value)
-                {
-                    _PickEntitiesExpression = value;
-                    OnPropertyChanged(nameof(PickEntitiesExpression));
-                }
-            }
+            get { return _Items ?? (_Items = new ObservableCollection<T>()); }
+            set { SetProperty(ref _Items, value, nameof(Items)); }
         }
         #endregion
 
         #region Commands
         /// <summary>
-        /// Command to add a new <typeparamref name="T"/>.
+        /// Command to execute the method AddCommandExecute.
         /// </summary>
         public RelayCommand<T> AddCommand
         {
-            get
-            {
-                return (_AddCommand == null)?  
-                    _AddCommand = new RelayCommand<T>(async(param)=> await AddCommandExecute(param), true) : _AddCommand;
-            }
-            set { _AddCommand = value; }
+            get { return _AddCommand ?? (_AddCommand = new RelayCommand<T>(AddCommandExecute, true)); }
         }
 
         /// <summary>
-        /// Command to populate 'SelectedItems' form parameter (IList).
-        /// </summary>
-        public RelayCommand<object> AddSelectionCommand
-        {
-            get
-            {
-                return (_AddSelectionCommand == null) ?
-                    _AddSelectionCommand = new RelayCommand<object>(async(param)=>await AddSelectionCommandExecute(param), true)
-                    : _AddSelectionCommand;
-            }
-        }
-
-        /// <summary>
-        /// Command to remove a <typeparamref name="T"/>.
+        /// Command to execute the method RemoveCommandExecute.
         /// </summary>
         public RelayCommand<T> RemoveCommand
         {
-            get
-            {
-                return (_RemoveCommand == null) ?
-                    _RemoveCommand = new RelayCommand<T>(async (param) => await RemoveCommandExecute(param)) : _RemoveCommand;
-            }
-            set { _RemoveCommand = value; }
+            get { return _RemoveCommand ?? (_RemoveCommand = new RelayCommand<T>(RemoveCommandExecute)); }
         }
 
         /// <summary>
-        /// Pop-out the current instance of this CRUDViewModel in a new window. 
+        /// Command to execute the method SaveCommandExecute.
         /// </summary>
-        public RelayCommand<T> PopOutCommand
+        public RelayCommand<T> SaveCommand
         {
-            get
-            {
-                return (_PopOutCommand == null) ?
-                    _PopOutCommand = new RelayCommand<T>(async (param) => await PopOutCommandExecute(param)) : _PopOutCommand;
-            }
-            set { _PopOutCommand = value; }
+            get { return _SaveCommand ?? (_SaveCommand = new RelayCommand<T>(SaveCommandExecute, true)); }
         }
 
         /// <summary>
-        /// Command to search <typeparamref name="T"/> into 'Items' using 'Filter'
+        /// Command to execute the method SearchCommandExecute.
         /// </summary>
-        public RelayCommand FilterCommand
+        public RelayCommand<Expression<Func<T, bool>>> SearchCommand
         {
-            get
-            {
-                return (_FilterCommand == null) ? 
-                    _FilterCommand = new RelayCommand(async()=> await FilterCommandExecute(), true) : _FilterCommand;
-            }
-            set { _FilterCommand = value; }
-        }
-        
-        /// <summary>
-        /// Command to save changes.
-        /// </summary>
-        public RelayCommand SaveCommand
-        {
-            get
-            {
-                return (_SaveCommand == null) ?
-                    _SaveCommand = new RelayCommand(async () => await SaveCommandExecute(), true) : _SaveCommand;
-            }
-            set { _SaveCommand = value; }
-        }
-
-        /// <summary>
-        /// Command to pick entities from a repository service and add them to 'Items'.
-        /// </summary>
-        public ContextMenuItemModel PickEntitiesCommand
-        {
-            get
-            {
-                return (_PickEntitiesCommand == null) ?
-                    _PickEntitiesCommand = new ContextMenuItemModel(
-                        new RelayCommand(async () => await PickEntitiesCommandExecute(PickEntitiesExpression), true), 
-                        "Search Items") 
-                   : _PickEntitiesCommand;
-            }
-            set { _PickEntitiesCommand = value; }
-        }
-
-        /// <summary>
-        /// Command to remove the Selected Item from Items.
-        /// </summary>
-        public ContextMenuItemModel RemoveSelectedItemCommand
-        {
-            get
-            {
-                return (_RemoveSelectedItemCommand == null) ? 
-                    _RemoveSelectedItemCommand = new ContextMenuItemModel(
-                        new RelayCommand(async () => await RemoveCommandExecute(SelectedItem)), "Remove Selected Item") 
-                    : _RemoveSelectedItemCommand;
-            }
-            set
-            {
-                if (_RemoveSelectedItemCommand != value)
-                {
-                    _RemoveSelectedItemCommand = value;
-                    OnPropertyChanged(nameof(RemoveSelectedItemCommand));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Command to pop-out Selected Item in a new pop-up.
-        /// </summary>
-        public ContextMenuItemModel PopOutSelectedItemCommand
-        {
-            get
-            {
-                return (_PopOutSelectedItemCommand == null) ?
-                    _PopOutSelectedItemCommand = new ContextMenuItemModel(
-                        new RelayCommand(async () => await PopOutCommandExecute(SelectedItem)), "Edit Selected Item")
-                    : _PopOutSelectedItemCommand;
-            }
-            set
-            {
-                if (_PopOutSelectedItemCommand != value)
-                {
-                    _PopOutSelectedItemCommand = value;
-                    OnPropertyChanged(nameof(PopOutSelectedItemCommand));
-                }
-            }
+            get { return _SearchCommand ?? (_SearchCommand = new RelayCommand<Expression<Func<T, bool>>>(SearchCommandExecute, true)); }
         }
         #endregion
 
         #region Commands Executions
         /// <summary>
-        /// Add new entity to 'Items' and through 'DataService' when available.
+        /// add a new entity (or the entity passed as parameter) to the collection.
         /// </summary>
-        /// <param name="entity">Entity to add (if null will automatically create a new instance)</param>
-        /// <returns>Return TRUE in case of operation successful</returns>
-        public virtual async Task<bool> AddCommandExecute(T entity)
+        /// <param name="entity">Entity to add.</param>
+        public void AddCommandExecute(T entity)
         {
             if (entity == null) { entity = Activator.CreateInstance<T>(); }
             entity.EntityStatus = EntityStatusEnum.Added;
             Items.Add(entity);
-            if (DataService != null && CanAdd)
-                entity = await DataService.AddEntityAsync(entity);
-            return true;
+            if (DataService != null && _RepositoryBehaviours.Contains(RepositoryBehaviourEnum.Create))
+                entity = DataService.Add(entity);
         }
 
         /// <summary>
-        /// Populate 'SelectedItems' form parameter (IList).
+        /// Remove the entity passed as parameter or all the SelectedItems if not null or the SelectedItem if not null from the collection and data service when available.
         /// </summary>
-        /// <param name="parameter"></param>
-        /// <returns>Return true when successful.</returns>
-        public virtual async Task<bool> AddSelectionCommandExecute(object parameter)
+        /// <param name="entity">Entity to remove</param>
+        public void RemoveCommandExecute(T entity)
         {
-            return await Task.Factory.StartNew(() =>
-            {
-                IList myItems = (IList)parameter;
-                if (myItems.OfType<T>().Count() > 0)
-                {
-                    SelectedItems = myItems.Cast<T>().AsObservableCollection();
-                    return true;
-                }
-                return false;
-            });
-        }
-
-        /// <summary>
-        /// Remove or 'parameter' if not null or 'SelectedItems' if Count>0 or 'SelectedItem' from 'Items' and through 'DataService' when available.
-        /// </summary>
-        /// <returns>Return TRUE in case operation successful</returns>
-        public virtual async Task<bool> RemoveCommandExecute(T entity)
-        {
+            bool deleteOnCascade = _RepositoryBehaviours.Contains(RepositoryBehaviourEnum.Delete);
             if (entity != null)
             {
                 entity.EntityStatus = EntityStatusEnum.Deleted;
-                if (DeleteOnCascade && DataService != null)
-                    await DataService.RemoveEntityAsync(entity);
+                if (deleteOnCascade && DataService != null)
+                    DataService.Remove(entity);
                 Items.Remove(entity);
-                return true;
             }
-            else if (_SelectedItems!=null && _SelectedItems.Count > 0)
+            else if (_SelectedItems != null && _SelectedItems.Count > 0)
             {
-                foreach(var e in _SelectedItems)
+                foreach (var e in _SelectedItems)
                 {
                     e.EntityStatus = EntityStatusEnum.Deleted;
-                    if (DeleteOnCascade && DataService != null)
-                        await DataService.RemoveEntityAsync(e);
+                    if (deleteOnCascade && DataService != null)
+                        DataService.Remove(e);
                     Items.Remove(e);
                 }
                 SelectedItem = default(T);
-                return true;
-            }else if (SelectedItem != null)
+            }
+            else if (SelectedItem != null)
             {
                 SelectedItem.EntityStatus = EntityStatusEnum.Deleted;
-                if (DeleteOnCascade && DataService != null)
-                    await DataService.RemoveEntityAsync(SelectedItem);
-
+                if (deleteOnCascade && DataService != null)
+                    DataService.Remove(SelectedItem);
                 Items.Remove(SelectedItem);
-                return true;
-            }else
-                return false;
-        }
-
-        /// <summary>
-        /// Open in a new pop-up the current instance of CRUDViewModel (or the entity 'parameter' when not null) using 'DialogService' when available.
-        /// </summary>
-        /// <returns>Return TRUE in case operation successful</returns>
-        public virtual async Task<bool> PopOutCommandExecute(T entity)
-        {
-            if (ServiceContainer != null && DialogService != null)
-            {
-                if (entity != null)
-                {
-                    SelectedItem = entity;
-                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", this);
-                    return (bool)await DialogService.ShowEntityDialogBox(vm);
-                }                  
-                else
-                {
-                    var vm = new CrudDialogViewModel<T>(ServiceContainer, typeof(T).Name, "", this);
-                    return (bool)await DialogService.ShowCRUDDialogBox(vm);
-                }
             }
-            return false;
+            else
+                return;
         }
 
         /// <summary>
-        /// Retrieve 'Items' from 'DataService' if exist, otherwise filter 'Items'.
+        /// Persist datas throw repository service.
         /// </summary>
-        /// <returns>Return TRUE in case of operation successful</returns>
-        public virtual async Task<bool> FilterCommandExecute()
+        /// <param name="entity">Entity to pass to the data service.</param>
+        public void SaveCommandExecute(T entity)
         {
-            return await Filter.FilterCommandExecute();
-        }
-
-        /// <summary>
-        /// Show a Dialog Box to pick entities from a repository service and add them to Items.
-        /// </summary>
-        /// <returns>Return TRUE in case of operation successful</returns>
-        public virtual async Task<bool> PickEntitiesCommandExecute(Expression<Func<T,bool>> expression)
-        {
-            if (ServiceContainer != null && DialogService != null)
+            if (DataService != null && IsValid && _RepositoryBehaviours.Contains(RepositoryBehaviourEnum.Update))
             {
-                var vm = new CrudDialogViewModel<T>(ServiceContainer, string.Format("{0} - Picker", typeof(T).Name), "");
-                if (expression != null)
-                {
-                    vm.ViewModel.Filter.HiddenExpression = expression;
-                    await vm.ViewModel.FilterCommandExecute();
-                }
-                if (await DialogService.ShowEntityPickerBox(vm) == true)
-                {
-                    foreach (T entity in vm.ViewModel.SelectedItems)
-                        Items.Add(entity);
-                    return true;
-                }
-                else
-                    return false;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Persist the collection 'Items' through 'DataService' when available.
-        /// </summary>
-        /// <returns>Return TRUE in case of operation successful</returns>
-        public virtual async Task<bool> SaveCommandExecute()
-        {
-            if (DataService != null && CanSave)
-            {
-                if (await DataService.SaveChangesAsync() == 0)
-                {
+                if (DataService.Save(entity) == 0)
                     foreach (var i in Items)
                         i.EntityStatus = EntityStatusEnum.Unchanged;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
             }
-            else { return true; }
+        }
+
+        /// <summary>
+        /// Filter the Items collection using dataservice when available.
+        /// </summary>
+        /// <param name="expression">Expression to query</param>
+        public async void SearchCommandExecute(Expression<Func<T, bool>> expression)
+        {
+            if (!_RepositoryBehaviours.Contains(RepositoryBehaviourEnum.Read))
+                return;
+            else if (expression != null && DataService != null)
+                Items = await DataService.RetrieveCollection(expression);
+            else if(DataService != null)
+                Items = await _Filter.FilterFromDataService();
+            else
+                Items = await _Filter.FilterFromCollection(Items);
         }
         #endregion
 
         #region Methods
         /// <summary>
-        /// Initialize CRUDViewModel getting 'DataService' from parameter 'service' and initializing 'Filter'.
+        /// Execute when the SelectedItem property change.
         /// </summary>
-        /// <param name="locator">Service Locator with the current services</param>
-        public override void Initialize(ServiceLocator locator)
+        protected virtual Task OnSelectedItemChanged()
         {
-            if (locator == null)
-                throw new ArgumentNullException(nameof(ServiceLocator), "Can't initialize CrudViewModel, can't inject services! Parameter is null.");
-            ServiceContainer = locator;
-            DataService = locator.GetService<IRepositoryService<T>>();
-            DialogService = locator.GetService<IEntityDialogBoxService>();
-            IsInitialized = true;
-        }
-
-        /// <summary>
-        /// Initialize a new instance of ContextMenu containing Add, Remove, Edit and Picker entity commands.
-        /// </summary>
-        protected virtual void SetContextMenu()
-        {
-            if(_ContextMenu==null)
-                _ContextMenu = new ObservableCollection<ContextMenuItemModel>();
-            _ContextMenu.Add(new ContextMenuItemModel(new RelayCommand(async () => await AddCommandExecute(null), true), "Add new"));// string.Format("Add new {0}", typeof(T).Name)));
-            _ContextMenu.Add(RemoveSelectedItemCommand);
-            _ContextMenu.Add(PopOutSelectedItemCommand);
-            _ContextMenu.Add(PickEntitiesCommand);
-        }
-
-        /// <summary>
-        /// Executed when a property of the item 'Filter' change the value.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Filter_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
+            return Task.Factory.StartNew(async() =>
             {
-                case nameof(Items):
-                    OnPropertyChanged(nameof(this.Items));
-                    Filter.Items.CollectionChanged += (obj, args) => OnPropertyChanged(nameof(Items));
-                    break;
-            }
+                bool isEnabled = _SelectedItem != null || (_SelectedItems != null && _SelectedItems.Count > 0);
+                RemoveCommand.IsEnabled = isEnabled;
+
+                if (_SelectedItem != null)
+                {
+                    if (_SelectedItem.Validator == null && _Validator != null)
+                        _SelectedItem.Validator = _Validator;
+                    else if (_SelectedItem.Validator != null &&
+                             _SelectedItem.Validator.GetType() == typeof(IValidator<T>) &&
+                             _Validator != null)
+                        ((IValidator<T>)_SelectedItem.Validator).MergeRules(_Validator.RulesCollection);
+                    await _SelectedItem.ValidateAsync();
+                }
+            });
         }
 
         /// <summary>
-        /// Executed when a property change the value.
+        /// Execute on property changed.
         /// </summary>
-        /// <param name="propertyName">Name of the property that changed value.</param>
-        protected override void OnPropertyChanged(string propertyName)
+        /// <param name="propertyName"></param>
+        protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            switch (propertyName)
-            {
-                case nameof(Filter):
-                    Filter.PropertyChanged += Filter_PropertyChanged;
-                    break;
-            }
+            if (propertyName == nameof(SelectedItem))
+                OnSelectedItemChanged();
             base.OnPropertyChanged(propertyName);
+        }
+
+        public override void InjectServices(ServiceLocator locator)
+        {
+            base.InjectServices(locator);
+            DataService = GetService<IRepositoryService<T>>();
+            DialogService = GetService<IDialogBoxService>();
         }
         #endregion
 
         #region Constructors
-        /// <summary>
-        /// Create a new instance of CRUDViewModel.
-        /// </summary>
         public CrudViewModel()
         {
-            Filter.PropertyChanged += Filter_PropertyChanged;
-            _CanSearch = true;
-            _DeleteOnCascade = true;
-            _CanAdd = true;
-            _CanSave = true;
-        }
-        
-        /// <summary>
-        /// Create a new instance of CRUDViewModel.
-        /// </summary>
-        /// <param name="canSearch">Enable the view model to execute query.</param>
-        public CrudViewModel(bool canSearch)
-        {
-            Filter.PropertyChanged += Filter_PropertyChanged;
-            _CanSearch = canSearch;
-            _DeleteOnCascade = true;
-            _CanAdd = true;
-            _CanSave = true;
         }
 
-        /// <summary>
-        /// Create a new instance of CRUDViewModel and initialize services from parameter 'service'.
-        /// </summary>
-        /// <param name="locator">Service Locator with the current services</param>
-        public CrudViewModel(ServiceLocator locator)
+        public CrudViewModel(ObservableCollection<T> items)
         {
-            Filter.PropertyChanged += Filter_PropertyChanged;
-            _CanSearch = true;
-            _DeleteOnCascade = true;
-            _CanAdd = true;
-            _CanSave = true;
-            Initialize(locator);
+            Items = items;
         }
 
-        /// <summary>
-        /// Create a new instance of CRUDViewModel and initialize services from parameter 'service'.
-        /// </summary>
-        /// <param name="locator">Service Locator with the current services</param>
-        /// <param name="canSearch">Enable the view model to execute query.</param>
-        public CrudViewModel(ServiceLocator locator, bool canSearch)
+        public CrudViewModel(ServiceLocator locator, params RepositoryBehaviourEnum[] repositoryBehaviours)
         {
-            Initialize(locator);
-            Filter.PropertyChanged += Filter_PropertyChanged;
-            _DeleteOnCascade = true;
-            _CanAdd = true;
-            _CanSave = true;
-            _CanSearch = canSearch;
+            InjectServices(locator);
+            if (repositoryBehaviours != null && repositoryBehaviours.Count() > 0)
+                _RepositoryBehaviours = repositoryBehaviours.Distinct().ToList();
+            else if (repositoryBehaviours == null)
+                _RepositoryBehaviours = new List<RepositoryBehaviourEnum> { RepositoryBehaviourEnum.Create,
+                                                                            RepositoryBehaviourEnum.Delete,
+                                                                            RepositoryBehaviourEnum.Read,
+                                                                            RepositoryBehaviourEnum.Update };
+        }
+
+        public CrudViewModel(IRepositoryService<T> repositoryService, params RepositoryBehaviourEnum[] repositoryBehaviours)
+        {
+            DataService = repositoryService;
+            if (repositoryBehaviours != null && repositoryBehaviours.Count() > 0)
+                _RepositoryBehaviours = repositoryBehaviours.Distinct().ToList();
+            else if(repositoryBehaviours == null)
+                _RepositoryBehaviours = new List<RepositoryBehaviourEnum> { RepositoryBehaviourEnum.Create,
+                                                                            RepositoryBehaviourEnum.Delete,
+                                                                            RepositoryBehaviourEnum.Read,
+                                                                            RepositoryBehaviourEnum.Update };
+        }
+
+        public CrudViewModel(IRepositoryService<T> repositoryService, IDialogBoxService dialogService, params RepositoryBehaviourEnum[] repositoryBehaviours)
+        {
+            DataService = repositoryService;
+            DialogService = dialogService;
+            if (repositoryBehaviours != null && repositoryBehaviours.Count() > 0)
+                _RepositoryBehaviours = repositoryBehaviours.Distinct().ToList();
+            else if (repositoryBehaviours == null)
+                _RepositoryBehaviours = new List<RepositoryBehaviourEnum> { RepositoryBehaviourEnum.Create,
+                                                                            RepositoryBehaviourEnum.Delete,
+                                                                            RepositoryBehaviourEnum.Read,
+                                                                            RepositoryBehaviourEnum.Update };
         }
         #endregion
     }

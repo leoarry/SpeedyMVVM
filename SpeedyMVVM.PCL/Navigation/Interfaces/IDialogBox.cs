@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SpeedyMVVM.Navigation.Interfaces
+namespace SpeedyMVVM.Navigation
 {
     public interface IDialogBox : IPageViewModel
     {

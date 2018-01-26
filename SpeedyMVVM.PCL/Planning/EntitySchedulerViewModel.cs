@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SpeedyMVVM.Utilities;
 using SpeedyMVVM.DataAccess;
-using SpeedyMVVM.DataAccess.Interfaces;
 using System.Linq.Expressions;
 using SpeedyMVVM.Expressions;
 
@@ -48,26 +47,27 @@ namespace SpeedyMVVM.Planning
         #region Command Executions
         protected override async Task<bool> ComputePlanCommandExecute()
         {
+            DateTime endingDate = EndingDate.AddDays(1);
             Expression<Func<T, bool>> query = r => r.PlannedDate >= StartingDate &&
-                                                   r.PlannedDate <= EndingDate;
+                                                   r.PlannedDate < endingDate;
             if (DataSourceQuery != null)
                 query = query.And(DataSourceQuery);
 
             DataSource = await ServiceContainer.GetService<IRepositoryService<T>>()
-                .RetrieveCollectionAsync(query);
+                .RetrieveCollection(query);
             return await base.ComputePlanCommandExecute();
         }
         #endregion
 
         #region Methods
-        public override void Initialize(ServiceLocator locator)
+        public override void InjectServices(ServiceLocator locator)
         {
             if (SelectionViewModel == null)
                 SelectionViewModel = new CrudViewModel<T>(locator);
             if (!SelectionViewModel.IsInitialized)
-                SelectionViewModel.Initialize(locator);
-            SelectionViewModel.CanSearch = false;
-            base.Initialize(locator);
+                SelectionViewModel.InjectServices(locator);
+            SelectionViewModel.RepositoryBehaviours.Remove(RepositoryBehaviourEnum.Read);
+            base.InjectServices(locator);
         }
 
         protected override void OnPropertyChanged(string propertyName)

@@ -1,5 +1,4 @@
-﻿using SpeedyMVVM.DataAccess.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,69 +31,35 @@ namespace SpeedyMVVM.TestModel.Services
             List = new List<T>();
         }
 
-        public T AddEntity(T entity)
+        public T Add(T entity)
         {
             List.Add(entity);
             return entity;
         }
-
-        public Task<T> AddEntityAsync(T entity)
-        {
-            return Task.Factory.StartNew(()=> AddEntity(entity));
-        }
-
-        public T RemoveEntity(T entity)
+        
+        public T Remove(T entity)
         {
             List.Remove(entity);
             return entity;
         }
-
-        public Task<T> RemoveEntityAsync(T entity)
+        
+        public int Save(T entity)
         {
-            return Task.Factory.StartNew(() => RemoveEntity(entity));
+            return 0;
         }
 
-        public ObservableCollection<T> RetrieveCollection(Expression<Func<T, bool>> predicate)
+        Task<ObservableCollection<TEntity>> IRepositoryService<T>.RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate)
         {
-            var result = List.AsQueryable().Where(predicate);
-            return (result != null) ? new ObservableCollection<T>(result) : new ObservableCollection<T>();
+            return null;
         }
 
-        public ObservableCollection<TEntity> RetrieveCollection<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase
+        Task<ObservableCollection<T>> IRepositoryService<T>.RetrieveCollection(Expression<Func<T, bool>> predicate)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<ObservableCollection<T>> RetrieveCollectionAsync(Expression<Func<T, bool>> predicate)
-        {
-            return Task.Factory.StartNew(() => RetrieveCollection(predicate));
-        }
-
-        public Task<ObservableCollection<TEntity>> RetrieveCollectionAsync<TEntity>(Expression<Func<TEntity, bool>> predicate) where TEntity : EntityBase
-        {
-            return Task.Factory.StartNew(() => RetrieveCollection<TEntity>(predicate));
-        }
-
-        public int SaveChanges()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<int> SaveChangesAsync()
-        {
-            return Task.Factory.StartNew(() => SaveChanges());
-        }
-
-        public T UpdateEntity(T entity)
-        {
-            var entityToUpdate = List.Find(e=> e==entity);
-            entityToUpdate = entity;
-            return entityToUpdate;
-        }
-
-        public Task<T> UpdateEntityAsync(T entity)
-        {
-            return Task.Factory.StartNew(() => UpdateEntity(entity));
+            return Task.Factory.StartNew(() =>
+            {
+                var result = List.AsQueryable().Where(predicate);
+                return (result != null) ? new ObservableCollection<T>(result) : new ObservableCollection<T>();
+            });
         }
     }
 }

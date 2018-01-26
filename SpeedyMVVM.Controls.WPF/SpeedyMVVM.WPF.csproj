@@ -109,9 +109,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SpeedyMVVM.PCL\SpeedyMVVM.csproj">
+    <ProjectReference Include="..\SpeedyMVVM.PCL\SpeedyMVVM.PCL.csproj">
       <Project>{FF135A87-16D8-4E3F-9BFD-B174888335F4}</Project>
-      <Name>SpeedyMVVM</Name>
+      <Name>SpeedyMVVM.PCL</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

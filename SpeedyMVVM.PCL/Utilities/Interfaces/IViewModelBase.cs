@@ -1,6 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 
-namespace SpeedyMVVM.Utilities.Interfaces
+namespace SpeedyMVVM.Utilities
 {
     /// <summary>
     /// Define a basic view model.
@@ -14,17 +15,18 @@ namespace SpeedyMVVM.Utilities.Interfaces
         ServiceLocator ServiceContainer { get; set; }
 
         /// <summary>
-        /// 'TRUE' when the ViwModel is initialized
+        /// Gets a value indicating whether the view model services have been injected.
         /// </summary>
-        bool IsInitialized { get; set; }
+        bool IsInitialized { get; }
         #endregion
 
         #region Methods
         /// <summary>
-        /// Initialize the ViewModel
+        /// Initialize the ViewModel injecting the services from the ServiceLocator passed as parameter.
         /// </summary>
         /// <param name="locator">Service locator for service injection</param>
-        void Initialize(ServiceLocator locator);
+        void InjectServices(ServiceLocator locator);
+
         /// <summary>
         /// Get a service from the 'ServiceContainer'.
         /// </summary>
